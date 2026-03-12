@@ -31,7 +31,7 @@ onChange={(e)=>setWeight(e.target.value)}
 />
 
 <button onClick={addWeight}>Add</button>
-v
+
 <h2>Weight Log</h2>
 <h2>Weight Chart</h2>
 
