@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -12,120 +12,109 @@ import {
 } from "recharts";
 
 export default function Home() {
-  const [activePage, setActivePage] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("weight");
 
   const [weight, setWeight] = useState("");
-  const [weightLog, setWeightLog] = useState([]);
-
-  const [calories, setCalories] = useState("");
-  const [protein, setProtein] = useState("");
-  const [carbs, setCarbs] = useState("");
-  const [fat, setFat] = useState("");
-  const [macroLog, setMacroLog] = useState([]);
+  const [log, setLog] = useState([]);
 
   const [workoutName, setWorkoutName] = useState("");
-  const [workoutNotes, setWorkoutNotes] = useState("");
+  const [workoutDate, setWorkoutDate] = useState(
+    new Date().toLocaleDateString()
+  );
+  const [exerciseRows, setExerciseRows] = useState([
+    { exercise: "", sets: "", reps: "", weight: "" },
+  ]);
   const [workoutLog, setWorkoutLog] = useState([]);
+  const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
 
   useEffect(() => {
-    const savedWeightLog = localStorage.getItem("weightLog");
-    const savedMacroLog = localStorage.getItem("macroLog");
-    const savedWorkoutLog = localStorage.getItem("workoutLog");
+    const savedWeights = localStorage.getItem("weightLog");
+    if (savedWeights) {
+      setLog(JSON.parse(savedWeights));
+    }
 
-    if (savedWeightLog) setWeightLog(JSON.parse(savedWeightLog));
-    if (savedMacroLog) setMacroLog(JSON.parse(savedMacroLog));
-    if (savedWorkoutLog) setWorkoutLog(JSON.parse(savedWorkoutLog));
+    const savedWorkouts = localStorage.getItem("workoutLog");
+    if (savedWorkouts) {
+      setWorkoutLog(JSON.parse(savedWorkouts));
+    }
+
+    const savedNames = localStorage.getItem("savedWorkoutNames");
+    if (savedNames) {
+      setSavedWorkoutNames(JSON.parse(savedNames));
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("weightLog", JSON.stringify(weightLog));
-  }, [weightLog]);
-
-  useEffect(() => {
-    localStorage.setItem("macroLog", JSON.stringify(macroLog));
-  }, [macroLog]);
+    localStorage.setItem("weightLog", JSON.stringify(log));
+  }, [log]);
 
   useEffect(() => {
     localStorage.setItem("workoutLog", JSON.stringify(workoutLog));
   }, [workoutLog]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      "savedWorkoutNames",
+      JSON.stringify(savedWorkoutNames)
+    );
+  }, [savedWorkoutNames]);
+
   function addWeight() {
     if (!weight) return;
 
-    setWeightLog([
-      ...weightLog,
-      {
-        date: new Date().toLocaleDateString(),
-        weight: Number(weight),
-      },
-    ]);
+    const newEntry = {
+      date: new Date().toLocaleDateString(),
+      weight: Number(weight),
+    };
 
+    setLog([newEntry, ...log]);
     setWeight("");
   }
 
-  function addMacros() {
-    if (!calories && !protein && !carbs && !fat) return;
+  function updateExerciseRow(index, field, value) {
+    const updated = [...exerciseRows];
+    updated[index][field] = value;
+    setExerciseRows(updated);
+  }
 
-    setMacroLog([
-      ...macroLog,
-      {
-        date: new Date().toLocaleDateString(),
-        calories: Number(calories || 0),
-        protein: Number(protein || 0),
-        carbs: Number(carbs || 0),
-        fat: Number(fat || 0),
-      },
+  function addExerciseRow() {
+    setExerciseRows([
+      ...exerciseRows,
+      { exercise: "", sets: "", reps: "", weight: "" },
     ]);
-
-    setCalories("");
-    setProtein("");
-    setCarbs("");
-    setFat("");
   }
 
   function addWorkout() {
-    if (!workoutName && !workoutNotes) return;
+    if (!workoutName) return;
 
-    setWorkoutLog([
-      ...workoutLog,
-      {
-        date: new Date().toLocaleDateString(),
-        name: workoutName,
-        notes: workoutNotes,
-      },
-    ]);
+    const cleaned = exerciseRows.filter(
+      (r) => r.exercise || r.sets || r.reps || r.weight
+    );
+
+    const newWorkout = {
+      name: workoutName,
+      date: workoutDate,
+      exercises: cleaned,
+    };
+
+    setWorkoutLog([newWorkout, ...workoutLog]);
+
+    if (!savedWorkoutNames.includes(workoutName)) {
+      setSavedWorkoutNames([...savedWorkoutNames, workoutName]);
+    }
 
     setWorkoutName("");
-    setWorkoutNotes("");
+    setWorkoutDate(new Date().toLocaleDateString());
+    setExerciseRows([{ exercise: "", sets: "", reps: "", weight: "" }]);
   }
 
-  const latestWeight =
-    weightLog.length > 0 ? weightLog[weightLog.length - 1].weight : "-";
+  function deleteWeightEntry(indexToDelete) {
+    setLog(log.filter((_, index) => index !== indexToDelete));
+  }
 
-  const latestMacros =
-    macroLog.length > 0 ? macroLog[macroLog.length - 1] : null;
-
-  const avgCalories = useMemo(() => {
-    if (macroLog.length === 0) return "-";
-    const total = macroLog.reduce((sum, item) => sum + item.calories, 0);
-    return Math.round(total / macroLog.length);
-  }, [macroLog]);
-
-  const avgWeight = useMemo(() => {
-    if (weightLog.length === 0) return "-";
-    const total = weightLog.reduce((sum, item) => sum + item.weight, 0);
-    return (total / weightLog.length).toFixed(1);
-  }, [weightLog]);
-
-  const buttonStyle = (page) => ({
-    backgroundColor: activePage === page ? "red" : "#111",
-    color: "#fff",
-    border: "1px solid red",
-    padding: "12px 16px",
-    borderRadius: "10px",
-    fontWeight: "bold",
-    cursor: "pointer",
-  });
+  function deleteWorkout(indexToDelete) {
+    setWorkoutLog(workoutLog.filter((_, index) => index !== indexToDelete));
+  }
 
   return (
     <div
@@ -137,54 +126,48 @@ export default function Home() {
         fontFamily: "Arial, sans-serif",
       }}
     >
-      <h1 style={{ marginBottom: "20px", fontSize: "42px" }}>Gym Tracker</h1>
+      <h1 style={{ marginBottom: "20px", fontSize: "38px" }}>Gym Tracker</h1>
 
       <div
         style={{
           display: "flex",
           gap: "10px",
+          marginBottom: "20px",
           flexWrap: "wrap",
-          marginBottom: "24px",
         }}
       >
-        <button style={buttonStyle("dashboard")} onClick={() => setActivePage("dashboard")}>
-          Dashboard
-        </button>
-        <button style={buttonStyle("weight")} onClick={() => setActivePage("weight")}>
+        <button
+          onClick={() => setActiveTab("weight")}
+          style={{
+            backgroundColor: activeTab === "weight" ? "red" : "#111",
+            color: "#fff",
+            border: "1px solid red",
+            padding: "12px 18px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
           Weight
         </button>
-        <button style={buttonStyle("macros")} onClick={() => setActivePage("macros")}>
-          Macros
-        </button>
-        <button style={buttonStyle("workouts")} onClick={() => setActivePage("workouts")}>
+
+        <button
+          onClick={() => setActiveTab("workouts")}
+          style={{
+            backgroundColor: activeTab === "workouts" ? "red" : "#111",
+            color: "#fff",
+            border: "1px solid red",
+            padding: "12px 18px",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+        >
           Workouts
         </button>
       </div>
 
-      {activePage === "dashboard" && (
-        <div
-          style={{
-            backgroundColor: "#111",
-            border: "2px solid red",
-            borderRadius: "14px",
-            padding: "20px",
-          }}
-        >
-          <h2 style={{ marginTop: 0 }}>Dashboard</h2>
-          <p style={{ fontSize: "18px" }}>Latest Weight: {latestWeight}</p>
-          <p style={{ fontSize: "18px" }}>Average Weight: {avgWeight}</p>
-          <p style={{ fontSize: "18px" }}>Average Calories: {avgCalories}</p>
-          <p style={{ fontSize: "18px" }}>
-            Latest Macros:{" "}
-            {latestMacros
-              ? `${latestMacros.calories} cal | ${latestMacros.protein}P | ${latestMacros.carbs}C | ${latestMacros.fat}F`
-              : "-"}
-          </p>
-          <p style={{ fontSize: "18px" }}>Saved Workouts: {workoutLog.length}</p>
-        </div>
-      )}
-
-      {activePage === "weight" && (
+      {activeTab === "weight" && (
         <>
           <div
             style={{
@@ -196,6 +179,7 @@ export default function Home() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>Add Weight</h2>
+
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
               <input
                 placeholder="Enter weight"
@@ -210,6 +194,7 @@ export default function Home() {
                   width: "220px",
                 }}
               />
+
               <button
                 onClick={addWeight}
                 style={{
@@ -219,6 +204,7 @@ export default function Home() {
                   padding: "12px 18px",
                   borderRadius: "8px",
                   fontWeight: "bold",
+                  cursor: "pointer",
                 }}
               >
                 Add
@@ -236,12 +222,40 @@ export default function Home() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>Weight Log</h2>
-            {weightLog.length === 0 ? (
+
+            {log.length === 0 ? (
               <p>No entries yet.</p>
             ) : (
-              weightLog.map((item, i) => (
-                <div key={i} style={{ marginBottom: "8px", fontSize: "18px" }}>
-                  {item.date} — {item.weight} lbs
+              log.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: "10px",
+                    alignItems: "center",
+                    marginBottom: "10px",
+                    borderBottom: "1px solid #333",
+                    paddingBottom: "8px",
+                  }}
+                >
+                  <div style={{ fontSize: "18px" }}>
+                    {item.date} — {item.weight} lbs
+                  </div>
+
+                  <button
+                    onClick={() => deleteWeightEntry(index)}
+                    style={{
+                      backgroundColor: "#222",
+                      color: "#fff",
+                      border: "1px solid red",
+                      padding: "8px 12px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Delete
+                  </button>
                 </div>
               ))
             )}
@@ -256,13 +270,20 @@ export default function Home() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>Weight Chart</h2>
+
             <div style={{ width: "100%", height: 320 }}>
               <ResponsiveContainer>
-                <LineChart data={weightLog}>
+                <LineChart data={[...log].reverse()}>
                   <CartesianGrid stroke="#333" />
                   <XAxis dataKey="date" stroke="#fff" />
                   <YAxis stroke="#fff" />
-                  <Tooltip />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#111",
+                      border: "1px solid red",
+                      color: "#fff",
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="weight"
@@ -276,82 +297,7 @@ export default function Home() {
         </>
       )}
 
-      {activePage === "macros" && (
-        <>
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-              marginBottom: "20px",
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>Log Macros</h2>
-            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <input
-                placeholder="Calories"
-                value={calories}
-                onChange={(e) => setCalories(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Protein"
-                value={protein}
-                onChange={(e) => setProtein(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Carbs"
-                value={carbs}
-                onChange={(e) => setCarbs(e.target.value)}
-                style={inputStyle}
-              />
-              <input
-                placeholder="Fat"
-                value={fat}
-                onChange={(e) => setFat(e.target.value)}
-                style={inputStyle}
-              />
-              <button
-                onClick={addMacros}
-                style={{
-                  backgroundColor: "red",
-                  color: "#fff",
-                  border: "none",
-                  padding: "12px 18px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                }}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-            }}
-          >
-            <h2 style={{ marginTop: 0 }}>Macro Log</h2>
-            {macroLog.length === 0 ? (
-              <p>No macro entries yet.</p>
-            ) : (
-              macroLog.map((item, i) => (
-                <div key={i} style={{ marginBottom: "10px", fontSize: "18px" }}>
-                  {item.date} — {item.calories} cal | {item.protein}P | {item.carbs}C | {item.fat}F
-                </div>
-              ))
-            )}
-          </div>
-        </>
-      )}
-
-      {activePage === "workouts" && (
+      {activeTab === "workouts" && (
         <>
           <div
             style={{
@@ -363,28 +309,146 @@ export default function Home() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>Log Workout</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <input
-                placeholder="Workout Name"
-                value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
-                style={{ ...inputStyle, width: "100%", maxWidth: "420px" }}
-              />
-              <textarea
-                placeholder="Workout Notes"
-                value={workoutNotes}
-                onChange={(e) => setWorkoutNotes(e.target.value)}
+
+            <select
+              value={workoutName}
+              onChange={(e) => setWorkoutName(e.target.value)}
+              style={{
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid red",
+                backgroundColor: "#000",
+                color: "#fff",
+                width: "100%",
+                marginBottom: "12px",
+              }}
+            >
+              <option value="">Select Saved Workout</option>
+              {savedWorkoutNames.map((name, index) => (
+                <option key={index} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+
+            <input
+              placeholder="Workout Name"
+              value={workoutName}
+              onChange={(e) => setWorkoutName(e.target.value)}
+              style={{
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid red",
+                backgroundColor: "#000",
+                color: "#fff",
+                width: "100%",
+                marginBottom: "12px",
+              }}
+            />
+
+            <input
+              placeholder="Date"
+              value={workoutDate}
+              onChange={(e) => setWorkoutDate(e.target.value)}
+              style={{
+                padding: "12px",
+                borderRadius: "8px",
+                border: "1px solid red",
+                backgroundColor: "#000",
+                color: "#fff",
+                width: "100%",
+                marginBottom: "16px",
+              }}
+            />
+
+            {exerciseRows.map((row, index) => (
+              <div
+                key={index}
                 style={{
-                  backgroundColor: "#000",
+                  display: "grid",
+                  gridTemplateColumns: "2fr 1fr 1fr 1fr",
+                  gap: "8px",
+                  marginBottom: "10px",
+                }}
+              >
+                <input
+                  placeholder="Exercise"
+                  value={row.exercise}
+                  onChange={(e) =>
+                    updateExerciseRow(index, "exercise", e.target.value)
+                  }
+                  style={{
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid red",
+                    backgroundColor: "#000",
+                    color: "#fff",
+                  }}
+                />
+
+                <input
+                  placeholder="Sets"
+                  value={row.sets}
+                  onChange={(e) =>
+                    updateExerciseRow(index, "sets", e.target.value)
+                  }
+                  style={{
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid red",
+                    backgroundColor: "#000",
+                    color: "#fff",
+                  }}
+                />
+
+                <input
+                  placeholder="Reps"
+                  value={row.reps}
+                  onChange={(e) =>
+                    updateExerciseRow(index, "reps", e.target.value)
+                  }
+                  style={{
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid red",
+                    backgroundColor: "#000",
+                    color: "#fff",
+                  }}
+                />
+
+                <input
+                  placeholder="Weight"
+                  value={row.weight}
+                  onChange={(e) =>
+                    updateExerciseRow(index, "weight", e.target.value)
+                  }
+                  style={{
+                    padding: "12px",
+                    borderRadius: "8px",
+                    border: "1px solid red",
+                    backgroundColor: "#000",
+                    color: "#fff",
+                  }}
+                />
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              <button
+                onClick={addExerciseRow}
+                style={{
+                  backgroundColor: "#222",
                   color: "#fff",
                   border: "1px solid red",
+                  padding: "12px 18px",
                   borderRadius: "8px",
-                  padding: "12px",
-                  minHeight: "120px",
-                  width: "100%",
-                  maxWidth: "420px",
+                  fontWeight: "bold",
+                  cursor: "pointer",
                 }}
-              />
+              >
+                Add Exercise
+              </button>
+
               <button
                 onClick={addWorkout}
                 style={{
@@ -394,7 +458,7 @@ export default function Home() {
                   padding: "12px 18px",
                   borderRadius: "8px",
                   fontWeight: "bold",
-                  width: "140px",
+                  cursor: "pointer",
                 }}
               >
                 Save Workout
@@ -411,22 +475,59 @@ export default function Home() {
             }}
           >
             <h2 style={{ marginTop: 0 }}>Workout Log</h2>
+
             {workoutLog.length === 0 ? (
               <p>No workouts saved yet.</p>
             ) : (
-              workoutLog.map((item, i) => (
+              workoutLog.map((workout, i) => (
                 <div
                   key={i}
                   style={{
-                    marginBottom: "16px",
-                    paddingBottom: "12px",
-                    borderBottom: "1px solid #333",
+                    border: "1px solid red",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    marginBottom: "14px",
                   }}
                 >
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                    {item.date} — {item.name || "Workout"}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 6px 0" }}>{workout.name}</h3>
+                      <p style={{ margin: 0, color: "#ccc" }}>
+                        {workout.date || "No date"}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => deleteWorkout(i)}
+                      style={{
+                        backgroundColor: "#222",
+                        color: "#fff",
+                        border: "1px solid red",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <div style={{ marginTop: "6px", color: "#ddd" }}>{item.notes}</div>
+
+                  <div style={{ marginTop: "12px" }}>
+                    {workout.exercises.map((ex, j) => (
+                      <div key={j} style={{ marginBottom: "6px" }}>
+                        {ex.exercise} — {ex.sets} sets × {ex.reps} reps ×{" "}
+                        {ex.weight} lbs
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))
             )}
@@ -436,12 +537,3 @@ export default function Home() {
     </div>
   );
 }
-
-const inputStyle = {
-  padding: "12px",
-  borderRadius: "8px",
-  border: "1px solid red",
-  backgroundColor: "#000",
-  color: "#fff",
-  width: "160px",
-};
