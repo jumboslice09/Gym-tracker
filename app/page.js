@@ -1,5 +1,7 @@
 "use client";
+
 import { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
 export default function Home() {
 
@@ -22,7 +24,6 @@ return (
 <div style={{padding:40,fontFamily:"Arial"}}>
 
 <h1>Gym Tracker</h1>
-
 <input
 placeholder="Enter weight"
 value={weight}
@@ -30,7 +31,7 @@ onChange={(e)=>setWeight(e.target.value)}
 />
 
 <button onClick={addWeight}>Add</button>
-import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+v
 <h2>Weight Log</h2>
 <h2>Weight Chart</h2>
 
