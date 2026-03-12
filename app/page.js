@@ -27,6 +27,18 @@ export default function Home() {
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
 
+  const [measurementForm, setMeasurementForm] = useState({
+    date: new Date().toLocaleDateString(),
+    arms: "",
+    chest: "",
+    waist: "",
+    legs: "",
+    calves: "",
+    shoulders: "",
+  });
+  const [measurementLog, setMeasurementLog] = useState([]);
+  const [selectedMeasurement, setSelectedMeasurement] = useState("arms");
+
   const [progressForm, setProgressForm] = useState({
     week: "",
     weight: "",
@@ -53,6 +65,9 @@ export default function Home() {
     const savedNames = localStorage.getItem("savedWorkoutNames");
     if (savedNames) setSavedWorkoutNames(JSON.parse(savedNames));
 
+    const savedMeasurements = localStorage.getItem("measurementLog");
+    if (savedMeasurements) setMeasurementLog(JSON.parse(savedMeasurements));
+
     const savedProgress = localStorage.getItem("progressLog");
     if (savedProgress) setProgressLog(JSON.parse(savedProgress));
 
@@ -76,6 +91,10 @@ export default function Home() {
   }, [savedWorkoutNames]);
 
   useEffect(() => {
+    localStorage.setItem("measurementLog", JSON.stringify(measurementLog));
+  }, [measurementLog]);
+
+  useEffect(() => {
     localStorage.setItem("progressLog", JSON.stringify(progressLog));
   }, [progressLog]);
 
@@ -86,6 +105,16 @@ export default function Home() {
   const chartData = useMemo(() => {
     return [...log].reverse();
   }, [log]);
+
+  const measurementChartData = useMemo(() => {
+    return [...measurementLog]
+      .reverse()
+      .map((entry) => ({
+        date: entry.date,
+        value: Number(entry[selectedMeasurement]) || 0,
+      }))
+      .filter((entry) => entry.value > 0);
+  }, [measurementLog, selectedMeasurement]);
 
   const currentWeight =
     log.length > 0 ? log[0].weight : progressLog[0]?.weight || "-";
@@ -101,6 +130,7 @@ export default function Home() {
   }, [log]);
 
   const latestProgress = progressLog[0] || {};
+  const latestMeasurements = measurementLog[0] || {};
 
   function addWeight() {
     if (!weight) return;
@@ -157,6 +187,37 @@ export default function Home() {
 
   function deleteWorkout(indexToDelete) {
     setWorkoutLog(workoutLog.filter((_, index) => index !== indexToDelete));
+  }
+
+  function addMeasurement() {
+    if (
+      !measurementForm.arms &&
+      !measurementForm.chest &&
+      !measurementForm.waist &&
+      !measurementForm.legs &&
+      !measurementForm.calves &&
+      !measurementForm.shoulders
+    ) {
+      return;
+    }
+
+    setMeasurementLog([{ ...measurementForm }, ...measurementLog]);
+
+    setMeasurementForm({
+      date: new Date().toLocaleDateString(),
+      arms: "",
+      chest: "",
+      waist: "",
+      legs: "",
+      calves: "",
+      shoulders: "",
+    });
+  }
+
+  function deleteMeasurement(indexToDelete) {
+    setMeasurementLog(
+      measurementLog.filter((_, index) => index !== indexToDelete)
+    );
   }
 
   function addProgress() {
@@ -286,6 +347,12 @@ export default function Home() {
           Workouts
         </button>
         <button
+          onClick={() => setActiveTab("measurements")}
+          style={tabButtonStyle("measurements")}
+        >
+          Measurements
+        </button>
+        <button
           onClick={() => setActiveTab("progress")}
           style={tabButtonStyle("progress")}
         >
@@ -309,6 +376,18 @@ export default function Home() {
               <div>Goal Bulk Weight: 185–190</div>
               <div>Goal Cut Weight: 180 lean</div>
               <div>Height: 5&apos;10&quot;</div>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Latest Measurements</h2>
+            <div style={{ lineHeight: "1.9" }}>
+              <div>Arms: {latestMeasurements.arms || "-"}</div>
+              <div>Chest: {latestMeasurements.chest || "-"}</div>
+              <div>Waist: {latestMeasurements.waist || "-"}</div>
+              <div>Legs: {latestMeasurements.legs || "-"}</div>
+              <div>Calves: {latestMeasurements.calves || "-"}</div>
+              <div>Shoulders: {latestMeasurements.shoulders || "-"}</div>
             </div>
           </div>
 
@@ -362,11 +441,7 @@ export default function Home() {
                 placeholder="Enter weight"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                style={{
-                  ...inputStyle,
-                  width: "220px",
-                  marginBottom: 0,
-                }}
+                style={{ ...inputStyle, width: "220px", marginBottom: 0 }}
               />
 
               <button onClick={addWeight} style={primaryButtonStyle}>
@@ -493,10 +568,7 @@ export default function Home() {
                   onChange={(e) =>
                     updateExerciseRow(index, "exercise", e.target.value)
                   }
-                  style={{
-                    ...inputStyle,
-                    marginBottom: 0,
-                  }}
+                  style={{ ...inputStyle, marginBottom: 0 }}
                 />
 
                 <input
@@ -505,10 +577,7 @@ export default function Home() {
                   onChange={(e) =>
                     updateExerciseRow(index, "sets", e.target.value)
                   }
-                  style={{
-                    ...inputStyle,
-                    marginBottom: 0,
-                  }}
+                  style={{ ...inputStyle, marginBottom: 0 }}
                 />
 
                 <input
@@ -517,10 +586,7 @@ export default function Home() {
                   onChange={(e) =>
                     updateExerciseRow(index, "reps", e.target.value)
                   }
-                  style={{
-                    ...inputStyle,
-                    marginBottom: 0,
-                  }}
+                  style={{ ...inputStyle, marginBottom: 0 }}
                 />
 
                 <input
@@ -529,10 +595,7 @@ export default function Home() {
                   onChange={(e) =>
                     updateExerciseRow(index, "weight", e.target.value)
                   }
-                  style={{
-                    ...inputStyle,
-                    marginBottom: 0,
-                  }}
+                  style={{ ...inputStyle, marginBottom: 0 }}
                 />
               </div>
             ))}
@@ -606,6 +669,184 @@ export default function Home() {
                 </div>
               ))
             )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "measurements" && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Body Measurements</h2>
+
+            <input
+              placeholder="Date"
+              value={measurementForm.date}
+              onChange={(e) =>
+                setMeasurementForm({ ...measurementForm, date: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Arms"
+              value={measurementForm.arms}
+              onChange={(e) =>
+                setMeasurementForm({ ...measurementForm, arms: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Chest"
+              value={measurementForm.chest}
+              onChange={(e) =>
+                setMeasurementForm({ ...measurementForm, chest: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Waist"
+              value={measurementForm.waist}
+              onChange={(e) =>
+                setMeasurementForm({ ...measurementForm, waist: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Legs"
+              value={measurementForm.legs}
+              onChange={(e) =>
+                setMeasurementForm({ ...measurementForm, legs: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Calves"
+              value={measurementForm.calves}
+              onChange={(e) =>
+                setMeasurementForm({
+                  ...measurementForm,
+                  calves: e.target.value,
+                })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Shoulders"
+              value={measurementForm.shoulders}
+              onChange={(e) =>
+                setMeasurementForm({
+                  ...measurementForm,
+                  shoulders: e.target.value,
+                })
+              }
+              style={inputStyle}
+            />
+
+            <button onClick={addMeasurement} style={primaryButtonStyle}>
+              Save Measurements
+            </button>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Measurement Log</h2>
+
+            {measurementLog.length === 0 ? (
+              <p>No measurements saved yet.</p>
+            ) : (
+              measurementLog.map((entry, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border: "1px solid red",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 6px 0" }}>{entry.date}</h3>
+                    </div>
+
+                    <button
+                      onClick={() => deleteMeasurement(index)}
+                      style={{
+                        backgroundColor: "#222",
+                        color: "#fff",
+                        border: "1px solid red",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  <div style={{ lineHeight: "1.8", marginTop: "10px" }}>
+                    <div>Arms: {entry.arms || "-"}</div>
+                    <div>Chest: {entry.chest || "-"}</div>
+                    <div>Waist: {entry.waist || "-"}</div>
+                    <div>Legs: {entry.legs || "-"}</div>
+                    <div>Calves: {entry.calves || "-"}</div>
+                    <div>Shoulders: {entry.shoulders || "-"}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Measurement Chart</h2>
+
+            <select
+              value={selectedMeasurement}
+              onChange={(e) => setSelectedMeasurement(e.target.value)}
+              style={inputStyle}
+            >
+              <option value="arms">Arms</option>
+              <option value="chest">Chest</option>
+              <option value="waist">Waist</option>
+              <option value="legs">Legs</option>
+              <option value="calves">Calves</option>
+              <option value="shoulders">Shoulders</option>
+            </select>
+
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer>
+                <LineChart data={measurementChartData}>
+                  <CartesianGrid stroke="#333" />
+                  <XAxis dataKey="date" stroke="#fff" />
+                  <YAxis stroke="#fff" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#111",
+                      border: "1px solid red",
+                      color: "#fff",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="red"
+                    strokeWidth={3}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </>
       )}
