@@ -30,8 +30,16 @@ onChange={(e)=>setWeight(e.target.value)}
 />
 
 <button onClick={addWeight}>Add</button>
-
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 <h2>Weight Log</h2>
+<h2>Weight Chart</h2>
+
+<LineChart width={500} height={300} data={log}>
+  <XAxis dataKey="date" />
+  <YAxis />
+  <Tooltip />
+  <Line type="monotone" dataKey="weight" stroke="#22c55e" />
+</LineChart>
 
 {log.map((item,i)=>(
 <div key={i}>
