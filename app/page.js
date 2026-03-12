@@ -1,75 +1,66 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
 export default function Home() {
+  const [weight, setWeight] = useState("");
+  const [log, setLog] = useState([]);
 
-const [weight,setWeight] = useState("");
-const [log,setLog] = useState([]);
+  useEffect(() => {
+    const savedLog = localStorage.getItem("weightLog");
+    if (savedLog) {
+      setLog(JSON.parse(savedLog));
+    }
+  }, []);
 
-function addWeight(){
-if(!weight) return;
+  useEffect(() => {
+    localStorage.setItem("weightLog", JSON.stringify(log));
+  }, [log]);
 
-setLog([...log,{
-date:new Date().toLocaleDateString(),
-weight:Number(weight)
-}]);
+  function addWeight() {
+    if (!weight) return;
 
-setWeight("");
-}
+    setLog([
+      ...log,
+      {
+        date: new Date().toLocaleDateString(),
+        weight: Number(weight),
+      },
+    ]);
 
-return (
+    setWeight("");
+  }
 
-<div style={{padding:40,fontFamily:"Arial"}}>
+  return (
+    <div style={{ padding: 40, fontFamily: "Arial" }}>
+      <h1>Gym Tracker</h1>
 
-<h1>Gym Tracker</h1>
-<input
-placeholder="Enter weight"
-value={weight}
-onChange={(e)=>setWeight(e.target.value)}
-/>
+      <h2>Add Weight</h2>
 
-<button onClick={addWeight}>Add</button>
+      <input
+        placeholder="Enter weight"
+        value={weight}
+        onChange={(e) => setWeight(e.target.value)}
+      />
 
-<h2>Weight Log</h2>
-<h2>Weight Chart</h2>
+      <button onClick={addWeight}>Add</button>
 
-<LineChart width={500} height={300} data={log}>
-  <XAxis dataKey="date" />
-  <YAxis />
-  <Tooltip />
-  <Line type="monotone" dataKey="weight" stroke="#22c55e" />
-</LineChart>
+      <h2>Weight Log</h2>
 
-{log.map((item,i)=>(
-<div key={i}>
-{item.date} — {item.weight}
-</div>
-))}
+      {log.map((item, i) => (
+        <div key={i}>
+          {item.date} — {item.weight}
+        </div>
+      ))}
 
-<h2>Weight Chart</h2>
+      <h2>Weight Chart</h2>
 
-<div style={{
-display:"flex",
-alignItems:"flex-end",
-gap:6,
-height:200
-}}>
-
-{log.map((item,i)=>(
-<div
-key={i}
-style={{
-width:20,
-height:item.weight,
-background:"green"
-}}
-/>
-))}
-
-</div>
-
-</div>
-);
+      <LineChart width={500} height={300} data={log}>
+        <XAxis dataKey="date" />
+        <YAxis />
+        <Tooltip />
+        <Line type="monotone" dataKey="weight" stroke="#22c55e" />
+      </LineChart>
+    </div>
+  );
 }
