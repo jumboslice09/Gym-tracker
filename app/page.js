@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   LineChart,
   Line,
@@ -12,7 +12,7 @@ import {
 } from "recharts";
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState("weight");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   const [weight, setWeight] = useState("");
   const [log, setLog] = useState([]);
@@ -27,21 +27,37 @@ export default function Home() {
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
 
+  const [progressForm, setProgressForm] = useState({
+    week: "",
+    weight: "",
+    bench: "",
+    squat: "",
+    deadlift: "",
+    arms: "",
+    waist: "",
+    physique: "",
+  });
+  const [progressLog, setProgressLog] = useState([]);
+
+  const [dietTitle, setDietTitle] = useState("");
+  const [dietNotes, setDietNotes] = useState("");
+  const [dietLog, setDietLog] = useState([]);
+
   useEffect(() => {
     const savedWeights = localStorage.getItem("weightLog");
-    if (savedWeights) {
-      setLog(JSON.parse(savedWeights));
-    }
+    if (savedWeights) setLog(JSON.parse(savedWeights));
 
     const savedWorkouts = localStorage.getItem("workoutLog");
-    if (savedWorkouts) {
-      setWorkoutLog(JSON.parse(savedWorkouts));
-    }
+    if (savedWorkouts) setWorkoutLog(JSON.parse(savedWorkouts));
 
     const savedNames = localStorage.getItem("savedWorkoutNames");
-    if (savedNames) {
-      setSavedWorkoutNames(JSON.parse(savedNames));
-    }
+    if (savedNames) setSavedWorkoutNames(JSON.parse(savedNames));
+
+    const savedProgress = localStorage.getItem("progressLog");
+    if (savedProgress) setProgressLog(JSON.parse(savedProgress));
+
+    const savedDiet = localStorage.getItem("dietLog");
+    if (savedDiet) setDietLog(JSON.parse(savedDiet));
   }, []);
 
   useEffect(() => {
@@ -59,6 +75,33 @@ export default function Home() {
     );
   }, [savedWorkoutNames]);
 
+  useEffect(() => {
+    localStorage.setItem("progressLog", JSON.stringify(progressLog));
+  }, [progressLog]);
+
+  useEffect(() => {
+    localStorage.setItem("dietLog", JSON.stringify(dietLog));
+  }, [dietLog]);
+
+  const chartData = useMemo(() => {
+    return [...log].reverse();
+  }, [log]);
+
+  const currentWeight =
+    log.length > 0 ? log[0].weight : progressLog[0]?.weight || "-";
+
+  const weeklyAverage = useMemo(() => {
+    const recent = log
+      .slice(0, 7)
+      .map((item) => Number(item.weight))
+      .filter((n) => !Number.isNaN(n) && n > 0);
+
+    if (!recent.length) return "-";
+    return (recent.reduce((a, b) => a + b, 0) / recent.length).toFixed(1);
+  }, [log]);
+
+  const latestProgress = progressLog[0] || {};
+
   function addWeight() {
     if (!weight) return;
 
@@ -69,6 +112,10 @@ export default function Home() {
 
     setLog([newEntry, ...log]);
     setWeight("");
+  }
+
+  function deleteWeightEntry(indexToDelete) {
+    setLog(log.filter((_, index) => index !== indexToDelete));
   }
 
   function updateExerciseRow(index, field, value) {
@@ -108,13 +155,97 @@ export default function Home() {
     setExerciseRows([{ exercise: "", sets: "", reps: "", weight: "" }]);
   }
 
-  function deleteWeightEntry(indexToDelete) {
-    setLog(log.filter((_, index) => index !== indexToDelete));
-  }
-
   function deleteWorkout(indexToDelete) {
     setWorkoutLog(workoutLog.filter((_, index) => index !== indexToDelete));
   }
+
+  function addProgress() {
+    if (!progressForm.week) return;
+
+    setProgressLog([{ ...progressForm }, ...progressLog]);
+
+    setProgressForm({
+      week: "",
+      weight: "",
+      bench: "",
+      squat: "",
+      deadlift: "",
+      arms: "",
+      waist: "",
+      physique: "",
+    });
+  }
+
+  function deleteProgress(indexToDelete) {
+    setProgressLog(progressLog.filter((_, index) => index !== indexToDelete));
+  }
+
+  function addDietNote() {
+    if (!dietTitle) return;
+
+    const newNote = {
+      title: dietTitle,
+      notes: dietNotes,
+      date: new Date().toLocaleDateString(),
+    };
+
+    setDietLog([newNote, ...dietLog]);
+    setDietTitle("");
+    setDietNotes("");
+  }
+
+  function deleteDietNote(indexToDelete) {
+    setDietLog(dietLog.filter((_, index) => index !== indexToDelete));
+  }
+
+  const tabButtonStyle = (tab) => ({
+    backgroundColor: activeTab === tab ? "red" : "#111",
+    color: "#fff",
+    border: "1px solid red",
+    padding: "12px 18px",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  });
+
+  const cardStyle = {
+    backgroundColor: "#111",
+    border: "2px solid red",
+    borderRadius: "14px",
+    padding: "20px",
+    marginBottom: "20px",
+  };
+
+  const inputStyle = {
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid red",
+    backgroundColor: "#000",
+    color: "#fff",
+    width: "100%",
+    marginBottom: "12px",
+    boxSizing: "border-box",
+  };
+
+  const secondaryButtonStyle = {
+    backgroundColor: "#222",
+    color: "#fff",
+    border: "1px solid red",
+    padding: "12px 18px",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  };
+
+  const primaryButtonStyle = {
+    backgroundColor: "red",
+    color: "#fff",
+    border: "none",
+    padding: "12px 18px",
+    borderRadius: "8px",
+    fontWeight: "bold",
+    cursor: "pointer",
+  };
 
   return (
     <div
@@ -137,47 +268,93 @@ export default function Home() {
         }}
       >
         <button
+          onClick={() => setActiveTab("dashboard")}
+          style={tabButtonStyle("dashboard")}
+        >
+          Dashboard
+        </button>
+        <button
           onClick={() => setActiveTab("weight")}
-          style={{
-            backgroundColor: activeTab === "weight" ? "red" : "#111",
-            color: "#fff",
-            border: "1px solid red",
-            padding: "12px 18px",
-            borderRadius: "8px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
+          style={tabButtonStyle("weight")}
         >
           Weight
         </button>
-
         <button
           onClick={() => setActiveTab("workouts")}
-          style={{
-            backgroundColor: activeTab === "workouts" ? "red" : "#111",
-            color: "#fff",
-            border: "1px solid red",
-            padding: "12px 18px",
-            borderRadius: "8px",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
+          style={tabButtonStyle("workouts")}
         >
           Workouts
         </button>
+        <button
+          onClick={() => setActiveTab("progress")}
+          style={tabButtonStyle("progress")}
+        >
+          Progress
+        </button>
+        <button
+          onClick={() => setActiveTab("diet")}
+          style={tabButtonStyle("diet")}
+        >
+          Diet
+        </button>
       </div>
+
+      {activeTab === "dashboard" && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Current Stats</h2>
+            <div style={{ lineHeight: "1.9" }}>
+              <div>Current Weight: {currentWeight}</div>
+              <div>7-Day Avg Weight: {weeklyAverage}</div>
+              <div>Goal Bulk Weight: 185–190</div>
+              <div>Goal Cut Weight: 180 lean</div>
+              <div>Height: 5&apos;10&quot;</div>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Latest Progress</h2>
+            <div style={{ lineHeight: "1.9" }}>
+              <div>Bench: {latestProgress.bench || "-"}</div>
+              <div>Squat: {latestProgress.squat || "-"}</div>
+              <div>Deadlift: {latestProgress.deadlift || "-"}</div>
+              <div>Arms: {latestProgress.arms || "-"}</div>
+              <div>Waist: {latestProgress.waist || "-"}</div>
+              <div>Physique Notes: {latestProgress.physique || "-"}</div>
+            </div>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Quick View</h2>
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer>
+                <LineChart data={chartData}>
+                  <CartesianGrid stroke="#333" />
+                  <XAxis dataKey="date" stroke="#fff" />
+                  <YAxis stroke="#fff" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#111",
+                      border: "1px solid red",
+                      color: "#fff",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="weight"
+                    stroke="red"
+                    strokeWidth={3}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </>
+      )}
 
       {activeTab === "weight" && (
         <>
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-              marginBottom: "20px",
-            }}
-          >
+          <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>Add Weight</h2>
 
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -186,41 +363,19 @@ export default function Home() {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 style={{
-                  padding: "12px",
-                  borderRadius: "8px",
-                  border: "1px solid red",
-                  backgroundColor: "#000",
-                  color: "#fff",
+                  ...inputStyle,
                   width: "220px",
+                  marginBottom: 0,
                 }}
               />
 
-              <button
-                onClick={addWeight}
-                style={{
-                  backgroundColor: "red",
-                  color: "#fff",
-                  border: "none",
-                  padding: "12px 18px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={addWeight} style={primaryButtonStyle}>
                 Add
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-              marginBottom: "20px",
-            }}
-          >
+          <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>Weight Log</h2>
 
             {log.length === 0 ? (
@@ -261,19 +416,12 @@ export default function Home() {
             )}
           </div>
 
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-            }}
-          >
+          <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>Weight Chart</h2>
 
             <div style={{ width: "100%", height: 320 }}>
               <ResponsiveContainer>
-                <LineChart data={[...log].reverse()}>
+                <LineChart data={chartData}>
                   <CartesianGrid stroke="#333" />
                   <XAxis dataKey="date" stroke="#fff" />
                   <YAxis stroke="#fff" />
@@ -299,29 +447,13 @@ export default function Home() {
 
       {activeTab === "workouts" && (
         <>
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-              marginBottom: "20px",
-            }}
-          >
+          <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>Log Workout</h2>
 
             <select
               value={workoutName}
               onChange={(e) => setWorkoutName(e.target.value)}
-              style={{
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid red",
-                backgroundColor: "#000",
-                color: "#fff",
-                width: "100%",
-                marginBottom: "12px",
-              }}
+              style={inputStyle}
             >
               <option value="">Select Saved Workout</option>
               {savedWorkoutNames.map((name, index) => (
@@ -335,30 +467,14 @@ export default function Home() {
               placeholder="Workout Name"
               value={workoutName}
               onChange={(e) => setWorkoutName(e.target.value)}
-              style={{
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid red",
-                backgroundColor: "#000",
-                color: "#fff",
-                width: "100%",
-                marginBottom: "12px",
-              }}
+              style={inputStyle}
             />
 
             <input
               placeholder="Date"
               value={workoutDate}
               onChange={(e) => setWorkoutDate(e.target.value)}
-              style={{
-                padding: "12px",
-                borderRadius: "8px",
-                border: "1px solid red",
-                backgroundColor: "#000",
-                color: "#fff",
-                width: "100%",
-                marginBottom: "16px",
-              }}
+              style={inputStyle}
             />
 
             {exerciseRows.map((row, index) => (
@@ -378,11 +494,8 @@ export default function Home() {
                     updateExerciseRow(index, "exercise", e.target.value)
                   }
                   style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid red",
-                    backgroundColor: "#000",
-                    color: "#fff",
+                    ...inputStyle,
+                    marginBottom: 0,
                   }}
                 />
 
@@ -393,11 +506,8 @@ export default function Home() {
                     updateExerciseRow(index, "sets", e.target.value)
                   }
                   style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid red",
-                    backgroundColor: "#000",
-                    color: "#fff",
+                    ...inputStyle,
+                    marginBottom: 0,
                   }}
                 />
 
@@ -408,11 +518,8 @@ export default function Home() {
                     updateExerciseRow(index, "reps", e.target.value)
                   }
                   style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid red",
-                    backgroundColor: "#000",
-                    color: "#fff",
+                    ...inputStyle,
+                    marginBottom: 0,
                   }}
                 />
 
@@ -423,57 +530,25 @@ export default function Home() {
                     updateExerciseRow(index, "weight", e.target.value)
                   }
                   style={{
-                    padding: "12px",
-                    borderRadius: "8px",
-                    border: "1px solid red",
-                    backgroundColor: "#000",
-                    color: "#fff",
+                    ...inputStyle,
+                    marginBottom: 0,
                   }}
                 />
               </div>
             ))}
 
             <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-              <button
-                onClick={addExerciseRow}
-                style={{
-                  backgroundColor: "#222",
-                  color: "#fff",
-                  border: "1px solid red",
-                  padding: "12px 18px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={addExerciseRow} style={secondaryButtonStyle}>
                 Add Exercise
               </button>
 
-              <button
-                onClick={addWorkout}
-                style={{
-                  backgroundColor: "red",
-                  color: "#fff",
-                  border: "none",
-                  padding: "12px 18px",
-                  borderRadius: "8px",
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                }}
-              >
+              <button onClick={addWorkout} style={primaryButtonStyle}>
                 Save Workout
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              backgroundColor: "#111",
-              border: "2px solid red",
-              borderRadius: "14px",
-              padding: "20px",
-            }}
-          >
+          <div style={cardStyle}>
             <h2 style={{ marginTop: 0 }}>Workout Log</h2>
 
             {workoutLog.length === 0 ? (
@@ -528,6 +603,235 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "progress" && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Add Weekly Progress</h2>
+
+            <input
+              placeholder="Week Of"
+              value={progressForm.week}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, week: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Weight"
+              value={progressForm.weight}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, weight: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Bench"
+              value={progressForm.bench}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, bench: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Squat"
+              value={progressForm.squat}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, squat: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Deadlift"
+              value={progressForm.deadlift}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, deadlift: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Arms"
+              value={progressForm.arms}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, arms: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <input
+              placeholder="Waist"
+              value={progressForm.waist}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, waist: e.target.value })
+              }
+              style={inputStyle}
+            />
+
+            <textarea
+              placeholder="Physique Notes"
+              value={progressForm.physique}
+              onChange={(e) =>
+                setProgressForm({ ...progressForm, physique: e.target.value })
+              }
+              style={{
+                ...inputStyle,
+                minHeight: "100px",
+                resize: "vertical",
+              }}
+            />
+
+            <button onClick={addProgress} style={primaryButtonStyle}>
+              Save Progress
+            </button>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Progress Log</h2>
+
+            {progressLog.length === 0 ? (
+              <p>No progress entries yet.</p>
+            ) : (
+              progressLog.map((entry, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border: "1px solid red",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 6px 0" }}>{entry.week}</h3>
+                    </div>
+
+                    <button
+                      onClick={() => deleteProgress(index)}
+                      style={{
+                        backgroundColor: "#222",
+                        color: "#fff",
+                        border: "1px solid red",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  <div style={{ lineHeight: "1.8", marginTop: "10px" }}>
+                    <div>Weight: {entry.weight || "-"}</div>
+                    <div>Bench: {entry.bench || "-"}</div>
+                    <div>Squat: {entry.squat || "-"}</div>
+                    <div>Deadlift: {entry.deadlift || "-"}</div>
+                    <div>Arms: {entry.arms || "-"}</div>
+                    <div>Waist: {entry.waist || "-"}</div>
+                    <div>Physique: {entry.physique || "-"}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+
+      {activeTab === "diet" && (
+        <>
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Diet / Supplements / Notes</h2>
+
+            <input
+              placeholder="Title"
+              value={dietTitle}
+              onChange={(e) => setDietTitle(e.target.value)}
+              style={inputStyle}
+            />
+
+            <textarea
+              placeholder="Notes"
+              value={dietNotes}
+              onChange={(e) => setDietNotes(e.target.value)}
+              style={{
+                ...inputStyle,
+                minHeight: "120px",
+                resize: "vertical",
+              }}
+            />
+
+            <button onClick={addDietNote} style={primaryButtonStyle}>
+              Save Note
+            </button>
+          </div>
+
+          <div style={cardStyle}>
+            <h2 style={{ marginTop: 0 }}>Saved Notes</h2>
+
+            {dietLog.length === 0 ? (
+              <p>No notes saved yet.</p>
+            ) : (
+              dietLog.map((item, index) => (
+                <div
+                  key={index}
+                  style={{
+                    border: "1px solid red",
+                    borderRadius: "10px",
+                    padding: "14px",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ margin: "0 0 6px 0" }}>{item.title}</h3>
+                      <p style={{ margin: 0, color: "#ccc" }}>{item.date}</p>
+                    </div>
+
+                    <button
+                      onClick={() => deleteDietNote(index)}
+                      style={{
+                        backgroundColor: "#222",
+                        color: "#fff",
+                        border: "1px solid red",
+                        padding: "8px 12px",
+                        borderRadius: "8px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  <p style={{ marginTop: "12px", whiteSpace: "pre-wrap" }}>
+                    {item.notes}
+                  </p>
                 </div>
               ))
             )}
