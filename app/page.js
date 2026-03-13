@@ -985,7 +985,7 @@ empty: {
     );
   }
 
-  if (!session) {
+  if (!session) 
   return (
     <div style={styles.authPage}>
       <div style={styles.authOuter}>
