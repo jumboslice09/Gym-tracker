@@ -1078,7 +1078,27 @@ export default function Home() {
         <div style={styles.headerCard}>
           <div style={styles.headerTop}>
             <div>
-              <h1 style={styles.title}>Gym Tracker</h1>
+    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+  <div
+    style={{
+      width: "48px",
+      height: "48px",
+      borderRadius: "14px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(220,38,38,0.14)",
+      border: "1px solid rgba(220,38,38,0.25)",
+      fontSize: "24px",
+    }}
+  >
+    🏋️
+  <div>
+  <div>
+    <h1 style={styles.title}>FitVault</h1>
+    <p style={styles.subtitle}>Welcome back, {session.user.email}</p>
+  </div>
+</div>
               <p style={styles.subtitle}>Logged in as {session.user.email}</p>
             </div>
             <div style={styles.row}>
