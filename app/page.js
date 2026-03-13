@@ -974,7 +974,7 @@ mutedButton: {
       fontSize: "14px",
       padding: "8px 0",
     },
-  };
+  }
 
   if (loading) {
     return (
