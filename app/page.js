@@ -768,7 +768,6 @@ mutedButton: {
   fontSize: "14px",
   cursor: "pointer",
   padding: 0,
-},
     },
     shell: {
       maxWidth: "1200px",
