@@ -988,46 +988,76 @@ mutedButton: {
   }
 
   if (!session) {
-    return (
-      <div style={styles.page}>
-        <div style={styles.authWrap}>
-          <div style={styles.authCard}>
-            <h1 style={styles.title}>Gym Tracker</h1>
-            <p style={styles.subtitle}>
-              Create an account or log in to access your own personal gym data.
-            </p>
+  return (
+    <div style={styles.authPage}>
+      <div style={styles.authOuter}>
+        <div style={styles.authGlow1} />
+        <div style={styles.authGlow2} />
 
-            <label style={styles.label}>Email</label>
-            <input
-              type="email"
-              placeholder="Email"
-              value={authEmail}
-              onChange={(e) => setAuthEmail(e.target.value)}
-              style={styles.input}
-            />
+        <div style={styles.authCardPro}>
+          <div style={styles.authLogo}>🏋️</div>
 
-            <label style={styles.label}>Password</label>
-            <input
-              type="password"
-              placeholder="Password"
-              value={authPassword}
-              onChange={(e) => setAuthPassword(e.target.value)}
-              style={styles.input}
-            />
+          <h1 style={styles.authTitle}>Gym Tracker</h1>
+          <p style={styles.authSubtitle}>
+            Track workouts, PRs, bodyweight, measurements, and progress all in
+            one place.
+          </p>
 
-            <div style={styles.row}>
-              <button onClick={signIn} style={styles.primaryButton}>
-                Log In
-              </button>
-              <button onClick={signUp} style={styles.secondaryButton}>
-                Create Account
-              </button>
-            </div>
+          <div style={styles.authTabs}>
+            <button
+              onClick={() => setIsSignup(false)}
+              style={styles.authTab(!isSignup)}
+            >
+              Log In
+            </button>
+            <button
+              onClick={() => setIsSignup(true)}
+              style={styles.authTab(isSignup)}
+            >
+              Create Account
+            </button>
+          </div>
+
+          <label style={styles.label}>Email</label>
+          <input
+            type="email"
+            placeholder="you@example.com"
+            value={authEmail}
+            onChange={(e) => setAuthEmail(e.target.value)}
+            style={styles.input}
+          />
+
+          <label style={styles.label}>Password</label>
+          <input
+            type="password"
+            placeholder="Enter your password"
+            value={authPassword}
+            onChange={(e) => setAuthPassword(e.target.value)}
+            style={styles.input}
+          />
+
+          <button
+            onClick={isSignup ? signUp : signIn}
+            style={styles.authPrimaryButton}
+          >
+            {isSignup ? "Create Account" : "Log In"}
+          </button>
+
+          <div style={styles.authFooterRow}>
+            <button style={styles.mutedButton}>Forgot password?</button>
+
+            <button
+              onClick={() => setIsSignup((prev) => !prev)}
+              style={styles.authLink}
+            >
+              {isSignup ? "Already have an account?" : "Need an account?"}
+            </button>
           </div>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   return (
     <div style={styles.page}>
