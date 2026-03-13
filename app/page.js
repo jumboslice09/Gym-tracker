@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { supabase } from "../lib/supabase";
 import {
   LineChart,
   Line,
@@ -12,6 +13,12 @@ import {
 } from "recharts";
 
 export default function Home() {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const [weight, setWeight] = useState("");
@@ -56,51 +63,125 @@ export default function Home() {
   const [dietLog, setDietLog] = useState([]);
 
   useEffect(() => {
-    const savedWeights = localStorage.getItem("weightLog");
-    if (savedWeights) setLog(JSON.parse(savedWeights));
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session ?? null);
+      setLoading(false);
+    });
 
-    const savedWorkouts = localStorage.getItem("workoutLog");
-    if (savedWorkouts) setWorkoutLog(JSON.parse(savedWorkouts));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession ?? null);
+      setLoading(false);
+    });
 
-    const savedNames = localStorage.getItem("savedWorkoutNames");
-    if (savedNames) setSavedWorkoutNames(JSON.parse(savedNames));
-
-    const savedMeasurements = localStorage.getItem("measurementLog");
-    if (savedMeasurements) setMeasurementLog(JSON.parse(savedMeasurements));
-
-    const savedProgress = localStorage.getItem("progressLog");
-    if (savedProgress) setProgressLog(JSON.parse(savedProgress));
-
-    const savedDiet = localStorage.getItem("dietLog");
-    if (savedDiet) setDietLog(JSON.parse(savedDiet));
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("weightLog", JSON.stringify(log));
-  }, [log]);
+    if (!session?.user?.id) return;
+    fetchAllUserData();
+  }, [session?.user?.id]);
 
-  useEffect(() => {
-    localStorage.setItem("workoutLog", JSON.stringify(workoutLog));
-  }, [workoutLog]);
+  async function fetchAllUserData() {
+    const userId = session?.user?.id;
+    if (!userId) return;
 
-  useEffect(() => {
-    localStorage.setItem(
-      "savedWorkoutNames",
-      JSON.stringify(savedWorkoutNames)
-    );
-  }, [savedWorkoutNames]);
+    const [
+      weightsResult,
+      workoutsResult,
+      measurementsResult,
+      progressResult,
+      dietResult,
+    ] = await Promise.all([
+      supabase
+        .from("weight_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("workout_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("measurement_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("progress_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("diet_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
+    ]);
 
-  useEffect(() => {
-    localStorage.setItem("measurementLog", JSON.stringify(measurementLog));
-  }, [measurementLog]);
+    if (!weightsResult.error && weightsResult.data) setLog(weightsResult.data);
+    if (!workoutsResult.error && workoutsResult.data) {
+      setWorkoutLog(workoutsResult.data);
+      const names = [...new Set(workoutsResult.data.map((w) => w.name).filter(Boolean))];
+      setSavedWorkoutNames(names);
+    }
+    if (!measurementsResult.error && measurementsResult.data) {
+      setMeasurementLog(measurementsResult.data);
+    }
+    if (!progressResult.error && progressResult.data) {
+      setProgressLog(progressResult.data);
+    }
+    if (!dietResult.error && dietResult.data) {
+      setDietLog(dietResult.data);
+    }
+  }
 
-  useEffect(() => {
-    localStorage.setItem("progressLog", JSON.stringify(progressLog));
-  }, [progressLog]);
+  async function signUp() {
+    if (!authEmail || !authPassword) {
+      alert("Enter email and password.");
+      return;
+    }
 
-  useEffect(() => {
-    localStorage.setItem("dietLog", JSON.stringify(dietLog));
-  }, [dietLog]);
+    const { error } = await supabase.auth.signUp({
+      email: authEmail,
+      password: authPassword,
+    });
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    alert("Account created. Now log in.");
+  }
+
+  async function signIn() {
+    if (!authEmail || !authPassword) {
+      alert("Enter email and password.");
+      return;
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: authEmail,
+      password: authPassword,
+    });
+
+    if (error) {
+      alert(error.message);
+    }
+  }
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    setLog([]);
+    setWorkoutLog([]);
+    setSavedWorkoutNames([]);
+    setMeasurementLog([]);
+    setProgressLog([]);
+    setDietLog([]);
+  }
 
   const weightChartData = useMemo(() => {
     return [...log].reverse();
@@ -134,20 +215,39 @@ export default function Home() {
   const totalWorkouts = workoutLog.length;
   const totalWeightEntries = log.length;
 
-  function addWeight() {
-    if (!weight) return;
+  async function addWeight() {
+    if (!weight || !session?.user?.id) return;
 
     const newEntry = {
+      user_id: session.user.id,
       date: new Date().toLocaleDateString(),
       weight: Number(weight),
     };
 
-    setLog([newEntry, ...log]);
+    const { data, error } = await supabase
+      .from("weight_logs")
+      .insert(newEntry)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setLog([data, ...log]);
     setWeight("");
   }
 
-  function deleteWeightEntry(indexToDelete) {
-    setLog(log.filter((_, index) => index !== indexToDelete));
+  async function deleteWeightEntry(id) {
+    const { error } = await supabase.from("weight_logs").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setLog(log.filter((item) => item.id !== id));
   }
 
   function updateExerciseRow(index, field, value) {
@@ -163,20 +263,32 @@ export default function Home() {
     ]);
   }
 
-  function addWorkout() {
-    if (!workoutName) return;
+  async function addWorkout() {
+    if (!workoutName || !session?.user?.id) return;
 
     const cleaned = exerciseRows.filter(
       (r) => r.exercise || r.sets || r.reps || r.weight
     );
 
     const newWorkout = {
+      user_id: session.user.id,
       name: workoutName,
       date: workoutDate,
       exercises: cleaned,
     };
 
-    setWorkoutLog([newWorkout, ...workoutLog]);
+    const { data, error } = await supabase
+      .from("workout_logs")
+      .insert(newWorkout)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setWorkoutLog([data, ...workoutLog]);
 
     if (!savedWorkoutNames.includes(workoutName)) {
       setSavedWorkoutNames([...savedWorkoutNames, workoutName]);
@@ -187,11 +299,20 @@ export default function Home() {
     setExerciseRows([{ exercise: "", sets: "", reps: "", weight: "" }]);
   }
 
-  function deleteWorkout(indexToDelete) {
-    setWorkoutLog(workoutLog.filter((_, index) => index !== indexToDelete));
+  async function deleteWorkout(id) {
+    const { error } = await supabase.from("workout_logs").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setWorkoutLog(workoutLog.filter((item) => item.id !== id));
   }
 
-  function addMeasurement() {
+  async function addMeasurement() {
+    if (!session?.user?.id) return;
+
     if (
       !measurementForm.arms &&
       !measurementForm.chest &&
@@ -203,7 +324,23 @@ export default function Home() {
       return;
     }
 
-    setMeasurementLog([{ ...measurementForm }, ...measurementLog]);
+    const payload = {
+      user_id: session.user.id,
+      ...measurementForm,
+    };
+
+    const { data, error } = await supabase
+      .from("measurement_logs")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setMeasurementLog([data, ...measurementLog]);
 
     setMeasurementForm({
       date: new Date().toLocaleDateString(),
@@ -216,16 +353,40 @@ export default function Home() {
     });
   }
 
-  function deleteMeasurement(indexToDelete) {
-    setMeasurementLog(
-      measurementLog.filter((_, index) => index !== indexToDelete)
-    );
+  async function deleteMeasurement(id) {
+    const { error } = await supabase
+      .from("measurement_logs")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setMeasurementLog(measurementLog.filter((item) => item.id !== id));
   }
 
-  function addProgress() {
-    if (!progressForm.week) return;
+  async function addProgress() {
+    if (!progressForm.week || !session?.user?.id) return;
 
-    setProgressLog([{ ...progressForm }, ...progressLog]);
+    const payload = {
+      user_id: session.user.id,
+      ...progressForm,
+    };
+
+    const { data, error } = await supabase
+      .from("progress_logs")
+      .insert(payload)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setProgressLog([data, ...progressLog]);
 
     setProgressForm({
       week: "",
@@ -239,26 +400,52 @@ export default function Home() {
     });
   }
 
-  function deleteProgress(indexToDelete) {
-    setProgressLog(progressLog.filter((_, index) => index !== indexToDelete));
+  async function deleteProgress(id) {
+    const { error } = await supabase.from("progress_logs").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setProgressLog(progressLog.filter((item) => item.id !== id));
   }
 
-  function addDietNote() {
-    if (!dietTitle) return;
+  async function addDietNote() {
+    if (!dietTitle || !session?.user?.id) return;
 
     const newNote = {
+      user_id: session.user.id,
       title: dietTitle,
       notes: dietNotes,
       date: new Date().toLocaleDateString(),
     };
 
-    setDietLog([newNote, ...dietLog]);
+    const { data, error } = await supabase
+      .from("diet_logs")
+      .insert(newNote)
+      .select()
+      .single();
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setDietLog([data, ...dietLog]);
     setDietTitle("");
     setDietNotes("");
   }
 
-  function deleteDietNote(indexToDelete) {
-    setDietLog(dietLog.filter((_, index) => index !== indexToDelete));
+  async function deleteDietNote(id) {
+    const { error } = await supabase.from("diet_logs").delete().eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    setDietLog(dietLog.filter((item) => item.id !== id));
   }
 
   const colors = {
@@ -281,6 +468,17 @@ export default function Home() {
       padding: "24px",
       fontFamily:
         'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    },
+    authWrap: {
+      maxWidth: "420px",
+      margin: "60px auto",
+    },
+    authCard: {
+      backgroundColor: "#111111",
+      border: "1px solid #262626",
+      borderRadius: "20px",
+      padding: "24px",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     },
     shell: {
       maxWidth: "1200px",
@@ -494,6 +692,58 @@ export default function Home() {
     },
   };
 
+  if (loading) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.authWrap}>
+          <div style={styles.authCard}>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.authWrap}>
+          <div style={styles.authCard}>
+            <h1 style={styles.title}>Gym Tracker</h1>
+            <p style={styles.subtitle}>
+              Create an account or log in to access your own personal gym data.
+            </p>
+
+            <label style={styles.label}>Email</label>
+            <input
+              type="email"
+              placeholder="Email"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              style={styles.input}
+            />
+
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="Password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              style={styles.input}
+            />
+
+            <div style={styles.row}>
+              <button onClick={signIn} style={styles.primaryButton}>
+                Log In
+              </button>
+              <button onClick={signUp} style={styles.secondaryButton}>
+                Create Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.page}>
       <div style={styles.shell}>
@@ -502,11 +752,15 @@ export default function Home() {
             <div>
               <h1 style={styles.title}>Gym Tracker</h1>
               <p style={styles.subtitle}>
-                Bulk phase dashboard for bodyweight, workouts, measurements, and
-                progress.
+                Logged in as {session.user.email}
               </p>
             </div>
-            <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
+            <div style={styles.row}>
+              <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
+              <button onClick={signOut} style={styles.secondaryButton}>
+                Log Out
+              </button>
+            </div>
           </div>
         </div>
 
@@ -580,7 +834,7 @@ export default function Home() {
             <div style={styles.grid2}>
               <div style={styles.card}>
                 <h2 style={styles.sectionTitle}>Latest Measurements</h2>
-                <div style={{ lineHeight: "1.9", color: colors.text }}>
+                <div style={{ lineHeight: "1.9" }}>
                   <div>Arms: {latestMeasurements.arms || "-"}</div>
                   <div>Chest: {latestMeasurements.chest || "-"}</div>
                   <div>Waist: {latestMeasurements.waist || "-"}</div>
@@ -592,7 +846,7 @@ export default function Home() {
 
               <div style={styles.card}>
                 <h2 style={styles.sectionTitle}>Latest Progress</h2>
-                <div style={{ lineHeight: "1.9", color: colors.text }}>
+                <div style={{ lineHeight: "1.9" }}>
                   <div>Bench: {latestProgress.bench || "-"}</div>
                   <div>Squat: {latestProgress.squat || "-"}</div>
                   <div>Deadlift: {latestProgress.deadlift || "-"}</div>
@@ -605,9 +859,6 @@ export default function Home() {
 
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Weight Trend</h2>
-              <p style={styles.sectionSub}>
-                Keep this trending up slowly while waist stays controlled.
-              </p>
               <div style={styles.chartWrap}>
                 <ResponsiveContainer>
                   <LineChart data={weightChartData}>
@@ -640,9 +891,6 @@ export default function Home() {
           <>
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Log Bodyweight</h2>
-              <p style={styles.sectionSub}>
-                Add one weigh-in at a time. Morning bodyweight is best.
-              </p>
               <div style={styles.row}>
                 <div style={{ minWidth: "240px", flex: 1 }}>
                   <label style={styles.label}>Bodyweight</label>
@@ -692,22 +940,17 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Weight History</h2>
               {log.length === 0 ? (
-                <div style={styles.empty}>
-                  No weight entries yet. Add your first weigh-in above.
-                </div>
+                <div style={styles.empty}>No weight entries yet.</div>
               ) : (
-                log.map((item, index) => (
-                  <div key={index} style={styles.listCard}>
+                log.map((item) => (
+                  <div key={item.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
-                        <h3 style={styles.listTitle}>
-                          {item.weight} lbs
-                        </h3>
+                        <h3 style={styles.listTitle}>{item.weight} lbs</h3>
                         <p style={styles.listMeta}>{item.date}</p>
                       </div>
-
                       <button
-                        onClick={() => deleteWeightEntry(index)}
+                        onClick={() => deleteWeightEntry(item.id)}
                         style={styles.deleteButton}
                       >
                         Delete
@@ -724,10 +967,6 @@ export default function Home() {
           <>
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Log Workout</h2>
-              <p style={styles.sectionSub}>
-                Choose a saved workout or type a new name, then log each
-                exercise.
-              </p>
 
               <label style={styles.label}>Saved Workout Names</label>
               <select
@@ -758,10 +997,6 @@ export default function Home() {
                 onChange={(e) => setWorkoutDate(e.target.value)}
                 style={styles.input}
               />
-
-              <div style={styles.helper}>
-                Log each exercise with sets, reps, and weight.
-              </div>
 
               {exerciseRows.map((row, index) => (
                 <div
@@ -821,20 +1056,17 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Workout History</h2>
               {workoutLog.length === 0 ? (
-                <div style={styles.empty}>
-                  No workouts saved yet. Log your first session above.
-                </div>
+                <div style={styles.empty}>No workouts saved yet.</div>
               ) : (
-                workoutLog.map((workout, i) => (
-                  <div key={i} style={styles.listCard}>
+                workoutLog.map((workout) => (
+                  <div key={workout.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{workout.name}</h3>
                         <p style={styles.listMeta}>{workout.date || "No date"}</p>
                       </div>
-
                       <button
-                        onClick={() => deleteWorkout(i)}
+                        onClick={() => deleteWorkout(workout.id)}
                         style={styles.deleteButton}
                       >
                         Delete
@@ -842,7 +1074,7 @@ export default function Home() {
                     </div>
 
                     <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
-                      {workout.exercises.map((ex, j) => (
+                      {(workout.exercises || []).map((ex, j) => (
                         <div key={j}>
                           {ex.exercise} — {ex.sets} sets × {ex.reps} reps ×{" "}
                           {ex.weight} lbs
@@ -861,9 +1093,6 @@ export default function Home() {
             <div style={styles.grid2}>
               <div style={styles.card}>
                 <h2 style={styles.sectionTitle}>Body Measurements</h2>
-                <p style={styles.sectionSub}>
-                  Use inches and log measurements consistently.
-                </p>
 
                 <label style={styles.label}>Date</label>
                 <input
@@ -1007,20 +1236,16 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Measurement History</h2>
               {measurementLog.length === 0 ? (
-                <div style={styles.empty}>
-                  No measurements saved yet. Add your first measurement entry
-                  above.
-                </div>
+                <div style={styles.empty}>No measurements saved yet.</div>
               ) : (
-                measurementLog.map((entry, index) => (
-                  <div key={index} style={styles.listCard}>
+                measurementLog.map((entry) => (
+                  <div key={entry.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{entry.date}</h3>
                       </div>
-
                       <button
-                        onClick={() => deleteMeasurement(index)}
+                        onClick={() => deleteMeasurement(entry.id)}
                         style={styles.deleteButton}
                       >
                         Delete
@@ -1046,10 +1271,6 @@ export default function Home() {
           <>
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Weekly Progress</h2>
-              <p style={styles.sectionSub}>
-                Use this for weekly summaries, strength updates, and physique
-                notes.
-              </p>
 
               <label style={styles.label}>Week Of</label>
               <input
@@ -1146,19 +1367,16 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Progress History</h2>
               {progressLog.length === 0 ? (
-                <div style={styles.empty}>
-                  No progress entries yet. Add your first weekly check-in above.
-                </div>
+                <div style={styles.empty}>No progress entries yet.</div>
               ) : (
-                progressLog.map((entry, index) => (
-                  <div key={index} style={styles.listCard}>
+                progressLog.map((entry) => (
+                  <div key={entry.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{entry.week}</h3>
                       </div>
-
                       <button
-                        onClick={() => deleteProgress(index)}
+                        onClick={() => deleteProgress(entry.id)}
                         style={styles.deleteButton}
                       >
                         Delete
@@ -1185,9 +1403,6 @@ export default function Home() {
           <>
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Diet / Supplements / Notes</h2>
-              <p style={styles.sectionSub}>
-                Save meal ideas, supplement notes, or nutrition reminders.
-              </p>
 
               <label style={styles.label}>Title</label>
               <input
@@ -1217,20 +1432,17 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Saved Notes</h2>
               {dietLog.length === 0 ? (
-                <div style={styles.empty}>
-                  No notes saved yet. Add your first diet note above.
-                </div>
+                <div style={styles.empty}>No notes saved yet.</div>
               ) : (
-                dietLog.map((item, index) => (
-                  <div key={index} style={styles.listCard}>
+                dietLog.map((item) => (
+                  <div key={item.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{item.title}</h3>
                         <p style={styles.listMeta}>{item.date}</p>
                       </div>
-
                       <button
-                        onClick={() => deleteDietNote(index)}
+                        onClick={() => deleteDietNote(item.id)}
                         style={styles.deleteButton}
                       >
                         Delete
@@ -1242,7 +1454,6 @@ export default function Home() {
                         marginTop: "12px",
                         whiteSpace: "pre-wrap",
                         lineHeight: "1.7",
-                        color: colors.text,
                         fontSize: "14px",
                       }}
                     >
