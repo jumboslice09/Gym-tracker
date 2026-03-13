@@ -24,15 +24,17 @@ export default function Home() {
   const [weight, setWeight] = useState("");
   const [log, setLog] = useState([]);
 
-  const [workoutName, setWorkoutName] = useState("");
-  const [workoutDate, setWorkoutDate] = useState(
-    new Date().toLocaleDateString()
-  );
-  const [exerciseRows, setExerciseRows] = useState([
-    { exercise: "", sets: "", reps: "", weight: "" },
-  ]);
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
+
+  const [liveWorkout, setLiveWorkout] = useState({
+    name: "",
+    date: new Date().toLocaleDateString(),
+    exercises: [],
+  });
+
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
 
   const [measurementForm, setMeasurementForm] = useState({
     date: new Date().toLocaleDateString(),
@@ -62,9 +64,6 @@ export default function Home() {
   const [dietNotes, setDietNotes] = useState("");
   const [dietLog, setDietLog] = useState([]);
 
-  const [prLog, setPrLog] = useState([]);
-  const [newPrs, setNewPrs] = useState([]);
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
@@ -83,17 +82,31 @@ export default function Home() {
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    fetchAllUserData(session.user.id);
+    fetchAllUserData();
   }, [session?.user?.id]);
 
-  async function fetchAllUserData(userId) {
+  useEffect(() => {
+    let interval;
+
+    if (timerRunning) {
+      interval = setInterval(() => {
+        setSecondsElapsed((prev) => prev + 1);
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [timerRunning]);
+
+  async function fetchAllUserData() {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     const [
       weightsResult,
       workoutsResult,
       measurementsResult,
       progressResult,
       dietResult,
-      prResult,
     ] = await Promise.all([
       supabase
         .from("weight_logs")
@@ -120,16 +133,9 @@ export default function Home() {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
-      supabase
-        .from("pr_logs")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false }),
     ]);
 
-    if (!weightsResult.error && weightsResult.data) {
-      setLog(weightsResult.data);
-    }
+    if (!weightsResult.error && weightsResult.data) setLog(weightsResult.data);
 
     if (!workoutsResult.error && workoutsResult.data) {
       setWorkoutLog(workoutsResult.data);
@@ -149,10 +155,6 @@ export default function Home() {
 
     if (!dietResult.error && dietResult.data) {
       setDietLog(dietResult.data);
-    }
-
-    if (!prResult.error && prResult.data) {
-      setPrLog(prResult.data);
     }
   }
 
@@ -199,17 +201,12 @@ export default function Home() {
     setMeasurementLog([]);
     setProgressLog([]);
     setDietLog([]);
-    setPrLog([]);
-    setNewPrs([]);
-  }
-
-  function calculateEstimated1RM(weight, reps) {
-    const w = Number(weight);
-    const r = Number(reps);
-
-    if (!w || !r) return 0;
-
-    return Number((w * (1 + r / 30)).toFixed(2));
+    setLiveWorkout({
+      name: "",
+      date: new Date().toLocaleDateString(),
+      exercises: [],
+    });
+    resetWorkoutTimer();
   }
 
   const weightChartData = useMemo(() => {
@@ -279,103 +276,158 @@ export default function Home() {
     setLog(log.filter((item) => item.id !== id));
   }
 
-  function updateExerciseRow(index, field, value) {
-    const updated = [...exerciseRows];
-    updated[index][field] = value;
-    setExerciseRows(updated);
+  function formatTime(totalSeconds) {
+    const hrs = String(Math.floor(totalSeconds / 3600)).padStart(2, "0");
+    const mins = String(Math.floor((totalSeconds % 3600) / 60)).padStart(
+      2,
+      "0"
+    );
+    const secs = String(totalSeconds % 60).padStart(2, "0");
+    return `${hrs}:${mins}:${secs}`;
   }
 
-  function addExerciseRow() {
-    setExerciseRows([
-      ...exerciseRows,
-      { exercise: "", sets: "", reps: "", weight: "" },
-    ]);
+  function startWorkoutTimer() {
+    setTimerRunning(true);
   }
 
-  async function updatePrsFromWorkout(exercises, workoutDateValue) {
-    if (!session?.user?.id) return;
+  function pauseWorkoutTimer() {
+    setTimerRunning(false);
+  }
 
-    const detectedNewPrs = [];
+  function resetWorkoutTimer() {
+    setTimerRunning(false);
+    setSecondsElapsed(0);
+  }
 
-    for (const ex of exercises) {
-      const exerciseName = ex.exercise?.trim();
-      const weightValue = Number(ex.weight);
-      const repsValue = Number(ex.reps);
+  function updateLiveWorkoutName(value) {
+    setLiveWorkout((prev) => ({
+      ...prev,
+      name: value,
+    }));
+  }
 
-      if (!exerciseName || !weightValue || !repsValue) continue;
+  function loadSavedWorkoutTemplate(selectedName) {
+    updateLiveWorkoutName(selectedName);
 
-      const estimated1RM = calculateEstimated1RM(weightValue, repsValue);
+    const latestMatch = workoutLog.find((w) => w.name === selectedName);
 
-      const existingPr = prLog.find(
-        (p) => p.exercise?.toLowerCase() === exerciseName.toLowerCase()
-      );
+    if (!latestMatch || !latestMatch.exercises?.length) return;
 
-      if (!existingPr) {
-        const { data, error } = await supabase
-          .from("pr_logs")
-          .insert({
-            user_id: session.user.id,
-            exercise: exerciseName,
-            best_weight: weightValue,
-            best_reps: repsValue,
-            estimated_1rm: estimated1RM,
-            date: workoutDateValue,
-          })
-          .select()
-          .single();
+    const grouped = {};
 
-        if (!error && data) {
-          setPrLog((prev) => [data, ...prev]);
-          detectedNewPrs.push(data);
-        }
+    latestMatch.exercises.forEach((ex) => {
+      if (!grouped[ex.exercise]) grouped[ex.exercise] = [];
+      grouped[ex.exercise].push({
+        prev: ex.weight && ex.reps ? `${ex.weight} x ${ex.reps}` : "",
+        weight: "",
+        reps: "",
+        done: false,
+      });
+    });
 
-        continue;
-      }
+    const rebuiltExercises = Object.entries(grouped).map(([name, sets]) => ({
+      name,
+      sets,
+    }));
 
-      const oldWeight = Number(existingPr.best_weight) || 0;
-      const old1RM = Number(existingPr.estimated_1rm) || 0;
+    setLiveWorkout((prev) => ({
+      ...prev,
+      name: selectedName,
+      exercises: rebuiltExercises,
+    }));
+  }
 
-      const isNewPr = weightValue > oldWeight || estimated1RM > old1RM;
+  function updateExerciseName(exerciseIndex, value) {
+    setLiveWorkout((prev) => {
+      const updated = [...prev.exercises];
+      updated[exerciseIndex].name = value;
+      return { ...prev, exercises: updated };
+    });
+  }
 
-      if (isNewPr) {
-        const { data, error } = await supabase
-          .from("pr_logs")
-          .update({
-            best_weight: weightValue,
-            best_reps: repsValue,
-            estimated_1rm: estimated1RM,
-            date: workoutDateValue,
-          })
-          .eq("id", existingPr.id)
-          .select()
-          .single();
+  function addExerciseCard() {
+    setLiveWorkout((prev) => ({
+      ...prev,
+      exercises: [
+        ...prev.exercises,
+        {
+          name: "",
+          sets: [{ prev: "", weight: "", reps: "", done: false }],
+        },
+      ],
+    }));
+  }
 
-        if (!error && data) {
-          setPrLog((prev) =>
-            prev.map((item) => (item.id === data.id ? data : item))
-          );
-          detectedNewPrs.push(data);
-        }
-      }
-    }
+  function deleteExerciseCard(exerciseIndex) {
+    setLiveWorkout((prev) => ({
+      ...prev,
+      exercises: prev.exercises.filter((_, i) => i !== exerciseIndex),
+    }));
+  }
 
-    if (detectedNewPrs.length > 0) {
-      setNewPrs(detectedNewPrs);
-    }
+  function addSetToExercise(exerciseIndex) {
+    setLiveWorkout((prev) => {
+      const updated = [...prev.exercises];
+      updated[exerciseIndex].sets.push({
+        prev: "",
+        weight: "",
+        reps: "",
+        done: false,
+      });
+      return { ...prev, exercises: updated };
+    });
+  }
+
+  function updateSetField(exerciseIndex, setIndex, field, value) {
+    setLiveWorkout((prev) => {
+      const updated = [...prev.exercises];
+      updated[exerciseIndex].sets[setIndex][field] = value;
+      return { ...prev, exercises: updated };
+    });
+  }
+
+  function toggleSetDone(exerciseIndex, setIndex) {
+    setLiveWorkout((prev) => {
+      const updated = [...prev.exercises];
+      updated[exerciseIndex].sets[setIndex].done =
+        !updated[exerciseIndex].sets[setIndex].done;
+      return { ...prev, exercises: updated };
+    });
   }
 
   async function addWorkout() {
-    if (!workoutName || !session?.user?.id) return;
+    if (!liveWorkout.name || !session?.user?.id) return;
 
-    const cleaned = exerciseRows.filter(
-      (r) => r.exercise || r.sets || r.reps || r.weight
+    const cleanedExercises = liveWorkout.exercises
+      .map((exercise) => ({
+        exercise: exercise.name,
+        sets: exercise.sets
+          .filter((set) => set.weight || set.reps || set.prev)
+          .map((set) => ({
+            prev: set.prev,
+            weight: set.weight,
+            reps: set.reps,
+            done: set.done,
+          })),
+      }))
+      .filter((exercise) => exercise.exercise);
+
+    const formattedForStorage = cleanedExercises.flatMap((exercise) =>
+      exercise.sets.map((set) => ({
+        exercise: exercise.exercise,
+        sets: 1,
+        reps: set.reps,
+        weight: set.weight,
+        prev: set.prev,
+        done: set.done,
+      }))
     );
 
     const newWorkout = {
       user_id: session.user.id,
-      name: workoutName,
-      date: workoutDate,
-      exercises: cleaned,
+      name: liveWorkout.name,
+      date: liveWorkout.date,
+      exercises: formattedForStorage,
     };
 
     const { data, error } = await supabase
@@ -391,15 +443,17 @@ export default function Home() {
 
     setWorkoutLog([data, ...workoutLog]);
 
-    await updatePrsFromWorkout(cleaned, workoutDate);
-
-    if (!savedWorkoutNames.includes(workoutName)) {
-      setSavedWorkoutNames([...savedWorkoutNames, workoutName]);
+    if (!savedWorkoutNames.includes(liveWorkout.name)) {
+      setSavedWorkoutNames([...savedWorkoutNames, liveWorkout.name]);
     }
 
-    setWorkoutName("");
-    setWorkoutDate(new Date().toLocaleDateString());
-    setExerciseRows([{ exercise: "", sets: "", reps: "", weight: "" }]);
+    setLiveWorkout({
+      name: "",
+      date: new Date().toLocaleDateString(),
+      exercises: [],
+    });
+
+    resetWorkoutTimer();
   }
 
   async function deleteWorkout(id) {
@@ -504,7 +558,10 @@ export default function Home() {
   }
 
   async function deleteProgress(id) {
-    const { error } = await supabase.from("progress_logs").delete().eq("id", id);
+    const { error } = await supabase
+      .from("progress_logs")
+      .delete()
+      .eq("id", id);
 
     if (error) {
       alert(error.message);
@@ -561,6 +618,7 @@ export default function Home() {
     muted: "#a3a3a3",
     accent: "#dc2626",
     accentDark: "#991b1b",
+    green: "#16a34a",
   };
 
   const styles = {
@@ -716,12 +774,6 @@ export default function Home() {
       display: "block",
       fontWeight: 600,
     },
-    helper: {
-      color: colors.muted,
-      fontSize: "12px",
-      marginTop: "-4px",
-      marginBottom: "12px",
-    },
     primaryButton: {
       backgroundColor: colors.accent,
       color: "#fff",
@@ -782,6 +834,7 @@ export default function Home() {
       display: "flex",
       gap: "10px",
       flexWrap: "wrap",
+      alignItems: "center",
     },
     chartWrap: {
       width: "100%",
@@ -864,32 +917,6 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-        {newPrs.length > 0 && (
-          <div style={styles.card}>
-            <h2 style={styles.sectionTitle}>
-              🔥 New PR{newPrs.length > 1 ? "s" : ""}
-            </h2>
-
-            {newPrs.map((pr) => (
-              <div key={pr.id} style={styles.listCard}>
-                <h3 style={styles.listTitle}>{pr.exercise}</h3>
-                <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
-                  <div>Best Weight: {pr.best_weight}</div>
-                  <div>Best Reps: {pr.best_reps}</div>
-                  <div>Estimated 1RM: {pr.estimated_1rm}</div>
-                </div>
-              </div>
-            ))}
-
-            <button
-              onClick={() => setNewPrs([])}
-              style={styles.secondaryButton}
-            >
-              Clear
-            </button>
-          </div>
-        )}
 
         <div style={styles.nav}>
           <button
@@ -982,33 +1009,6 @@ export default function Home() {
                   <div>Physique Notes: {latestProgress.physique || "-"}</div>
                 </div>
               </div>
-            </div>
-
-            <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Personal Records</h2>
-
-              {prLog.length === 0 ? (
-                <div style={styles.empty}>
-                  No PRs yet. Save workouts to build your PR list.
-                </div>
-              ) : (
-                prLog.slice(0, 8).map((pr) => (
-                  <div key={pr.id} style={styles.listCard}>
-                    <div style={styles.listHeader}>
-                      <div>
-                        <h3 style={styles.listTitle}>{pr.exercise}</h3>
-                        <p style={styles.listMeta}>{pr.date || "No date"}</p>
-                      </div>
-                    </div>
-
-                    <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
-                      <div>Best Weight: {pr.best_weight}</div>
-                      <div>Best Reps: {pr.best_reps}</div>
-                      <div>Estimated 1RM: {pr.estimated_1rm}</div>
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
 
             <div style={styles.card}>
@@ -1120,12 +1120,54 @@ export default function Home() {
         {activeTab === "workouts" && (
           <>
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Log Workout</h2>
+              <h2 style={styles.sectionTitle}>Live Workout</h2>
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginBottom: "18px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "32px",
+                    fontWeight: 800,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {formatTime(secondsElapsed)}
+                </div>
+
+                <div style={styles.row}>
+                  <button
+                    onClick={startWorkoutTimer}
+                    style={styles.secondaryButton}
+                  >
+                    Start
+                  </button>
+                  <button
+                    onClick={pauseWorkoutTimer}
+                    style={styles.secondaryButton}
+                  >
+                    Pause
+                  </button>
+                  <button
+                    onClick={resetWorkoutTimer}
+                    style={styles.secondaryButton}
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
 
               <label style={styles.label}>Saved Workout Names</label>
               <select
-                value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
+                value={liveWorkout.name}
+                onChange={(e) => loadSavedWorkoutTemplate(e.target.value)}
                 style={styles.input}
               >
                 <option value="">Select Saved Workout</option>
@@ -1139,70 +1181,181 @@ export default function Home() {
               <label style={styles.label}>Workout Name</label>
               <input
                 placeholder="Workout Name"
-                value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
+                value={liveWorkout.name}
+                onChange={(e) => updateLiveWorkoutName(e.target.value)}
                 style={styles.input}
               />
 
               <label style={styles.label}>Date</label>
               <input
-                placeholder="Date"
-                value={workoutDate}
-                onChange={(e) => setWorkoutDate(e.target.value)}
+                value={liveWorkout.date}
+                onChange={(e) =>
+                  setLiveWorkout((prev) => ({ ...prev, date: e.target.value }))
+                }
                 style={styles.input}
               />
 
-              {exerciseRows.map((row, index) => (
+              {liveWorkout.exercises.map((exercise, exerciseIndex) => (
                 <div
-                  key={index}
+                  key={exerciseIndex}
                   style={{
-                    display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr",
-                    gap: "10px",
-                    marginBottom: "10px",
+                    ...styles.listCard,
+                    marginTop: "16px",
+                    padding: "18px",
                   }}
                 >
-                  <input
-                    placeholder="Exercise"
-                    value={row.exercise}
-                    onChange={(e) =>
-                      updateExerciseRow(index, "exercise", e.target.value)
-                    }
-                    style={{ ...styles.input, marginBottom: 0 }}
-                  />
-                  <input
-                    placeholder="Sets"
-                    value={row.sets}
-                    onChange={(e) =>
-                      updateExerciseRow(index, "sets", e.target.value)
-                    }
-                    style={{ ...styles.input, marginBottom: 0 }}
-                  />
-                  <input
-                    placeholder="Reps"
-                    value={row.reps}
-                    onChange={(e) =>
-                      updateExerciseRow(index, "reps", e.target.value)
-                    }
-                    style={{ ...styles.input, marginBottom: 0 }}
-                  />
-                  <input
-                    placeholder="Weight"
-                    value={row.weight}
-                    onChange={(e) =>
-                      updateExerciseRow(index, "weight", e.target.value)
-                    }
-                    style={{ ...styles.input, marginBottom: 0 }}
-                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: "10px",
+                      alignItems: "center",
+                      marginBottom: "14px",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <input
+                      placeholder="Exercise Name"
+                      value={exercise.name}
+                      onChange={(e) =>
+                        updateExerciseName(exerciseIndex, e.target.value)
+                      }
+                      style={{
+                        ...styles.input,
+                        marginBottom: 0,
+                        flex: 1,
+                        minWidth: "220px",
+                      }}
+                    />
+
+                    <button
+                      onClick={() => deleteExerciseCard(exerciseIndex)}
+                      style={styles.deleteButton}
+                    >
+                      Remove
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "60px 1.2fr 1fr 1fr 80px",
+                      gap: "8px",
+                      marginBottom: "10px",
+                      color: "#a3a3a3",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                    }}
+                  >
+                    <div>SET</div>
+                    <div>PREV</div>
+                    <div>LBS</div>
+                    <div>REPS</div>
+                    <div>DONE</div>
+                  </div>
+
+                  {exercise.sets.map((set, setIndex) => (
+                    <div
+                      key={setIndex}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "60px 1.2fr 1fr 1fr 80px",
+                        gap: "8px",
+                        marginBottom: "10px",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          ...styles.input,
+                          marginBottom: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {setIndex + 1}
+                      </div>
+
+                      <input
+                        placeholder="Prev"
+                        value={set.prev}
+                        onChange={(e) =>
+                          updateSetField(
+                            exerciseIndex,
+                            setIndex,
+                            "prev",
+                            e.target.value
+                          )
+                        }
+                        style={{ ...styles.input, marginBottom: 0 }}
+                      />
+
+                      <input
+                        placeholder="Weight"
+                        value={set.weight}
+                        onChange={(e) =>
+                          updateSetField(
+                            exerciseIndex,
+                            setIndex,
+                            "weight",
+                            e.target.value
+                          )
+                        }
+                        style={{ ...styles.input, marginBottom: 0 }}
+                      />
+
+                      <input
+                        placeholder="Reps"
+                        value={set.reps}
+                        onChange={(e) =>
+                          updateSetField(
+                            exerciseIndex,
+                            setIndex,
+                            "reps",
+                            e.target.value
+                          )
+                        }
+                        style={{ ...styles.input, marginBottom: 0 }}
+                      />
+
+                      <button
+                        onClick={() => toggleSetDone(exerciseIndex, setIndex)}
+                        style={{
+                          ...styles.secondaryButton,
+                          backgroundColor: set.done ? "#16a34a" : "#161616",
+                          border: set.done
+                            ? "1px solid #16a34a"
+                            : "1px solid #262626",
+                          minHeight: "52px",
+                        }}
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    onClick={() => addSetToExercise(exerciseIndex)}
+                    style={{
+                      ...styles.secondaryButton,
+                      width: "100%",
+                      marginTop: "8px",
+                    }}
+                  >
+                    + Add Set
+                  </button>
                 </div>
               ))}
 
-              <div style={styles.row}>
-                <button onClick={addExerciseRow} style={styles.secondaryButton}>
+              <div style={{ ...styles.row, marginTop: "18px" }}>
+                <button onClick={addExerciseCard} style={styles.secondaryButton}>
                   Add Exercise
                 </button>
+
                 <button onClick={addWorkout} style={styles.primaryButton}>
-                  Save Workout
+                  Finish Workout
                 </button>
               </div>
             </div>
@@ -1230,8 +1383,7 @@ export default function Home() {
                     <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
                       {(workout.exercises || []).map((ex, j) => (
                         <div key={j}>
-                          {ex.exercise} — {ex.sets} sets × {ex.reps} reps ×{" "}
-                          {ex.weight} lbs
+                          {ex.exercise} — {ex.weight} lbs × {ex.reps} reps
                         </div>
                       ))}
                     </div>
