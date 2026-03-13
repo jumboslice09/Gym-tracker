@@ -62,6 +62,9 @@ export default function Home() {
   const [dietNotes, setDietNotes] = useState("");
   const [dietLog, setDietLog] = useState([]);
 
+  const [prLog, setPrLog] = useState([]);
+  const [newPrs, setNewPrs] = useState([]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session ?? null);
@@ -80,19 +83,17 @@ export default function Home() {
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    fetchAllUserData();
+    fetchAllUserData(session.user.id);
   }, [session?.user?.id]);
 
-  async function fetchAllUserData() {
-    const userId = session?.user?.id;
-    if (!userId) return;
-
+  async function fetchAllUserData(userId) {
     const [
       weightsResult,
       workoutsResult,
       measurementsResult,
       progressResult,
       dietResult,
+      prResult,
     ] = await Promise.all([
       supabase
         .from("weight_logs")
@@ -119,22 +120,39 @@ export default function Home() {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("pr_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false }),
     ]);
 
-    if (!weightsResult.error && weightsResult.data) setLog(weightsResult.data);
+    if (!weightsResult.error && weightsResult.data) {
+      setLog(weightsResult.data);
+    }
+
     if (!workoutsResult.error && workoutsResult.data) {
       setWorkoutLog(workoutsResult.data);
-      const names = [...new Set(workoutsResult.data.map((w) => w.name).filter(Boolean))];
+      const names = [
+        ...new Set(workoutsResult.data.map((w) => w.name).filter(Boolean)),
+      ];
       setSavedWorkoutNames(names);
     }
+
     if (!measurementsResult.error && measurementsResult.data) {
       setMeasurementLog(measurementsResult.data);
     }
+
     if (!progressResult.error && progressResult.data) {
       setProgressLog(progressResult.data);
     }
+
     if (!dietResult.error && dietResult.data) {
       setDietLog(dietResult.data);
+    }
+
+    if (!prResult.error && prResult.data) {
+      setPrLog(prResult.data);
     }
   }
 
@@ -181,6 +199,17 @@ export default function Home() {
     setMeasurementLog([]);
     setProgressLog([]);
     setDietLog([]);
+    setPrLog([]);
+    setNewPrs([]);
+  }
+
+  function calculateEstimated1RM(weight, reps) {
+    const w = Number(weight);
+    const r = Number(reps);
+
+    if (!w || !r) return 0;
+
+    return Number((w * (1 + r / 30)).toFixed(2));
   }
 
   const weightChartData = useMemo(() => {
@@ -263,6 +292,78 @@ export default function Home() {
     ]);
   }
 
+  async function updatePrsFromWorkout(exercises, workoutDateValue) {
+    if (!session?.user?.id) return;
+
+    const detectedNewPrs = [];
+
+    for (const ex of exercises) {
+      const exerciseName = ex.exercise?.trim();
+      const weightValue = Number(ex.weight);
+      const repsValue = Number(ex.reps);
+
+      if (!exerciseName || !weightValue || !repsValue) continue;
+
+      const estimated1RM = calculateEstimated1RM(weightValue, repsValue);
+
+      const existingPr = prLog.find(
+        (p) => p.exercise?.toLowerCase() === exerciseName.toLowerCase()
+      );
+
+      if (!existingPr) {
+        const { data, error } = await supabase
+          .from("pr_logs")
+          .insert({
+            user_id: session.user.id,
+            exercise: exerciseName,
+            best_weight: weightValue,
+            best_reps: repsValue,
+            estimated_1rm: estimated1RM,
+            date: workoutDateValue,
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          setPrLog((prev) => [data, ...prev]);
+          detectedNewPrs.push(data);
+        }
+
+        continue;
+      }
+
+      const oldWeight = Number(existingPr.best_weight) || 0;
+      const old1RM = Number(existingPr.estimated_1rm) || 0;
+
+      const isNewPr = weightValue > oldWeight || estimated1RM > old1RM;
+
+      if (isNewPr) {
+        const { data, error } = await supabase
+          .from("pr_logs")
+          .update({
+            best_weight: weightValue,
+            best_reps: repsValue,
+            estimated_1rm: estimated1RM,
+            date: workoutDateValue,
+          })
+          .eq("id", existingPr.id)
+          .select()
+          .single();
+
+        if (!error && data) {
+          setPrLog((prev) =>
+            prev.map((item) => (item.id === data.id ? data : item))
+          );
+          detectedNewPrs.push(data);
+        }
+      }
+    }
+
+    if (detectedNewPrs.length > 0) {
+      setNewPrs(detectedNewPrs);
+    }
+  }
+
   async function addWorkout() {
     if (!workoutName || !session?.user?.id) return;
 
@@ -289,6 +390,8 @@ export default function Home() {
     }
 
     setWorkoutLog([data, ...workoutLog]);
+
+    await updatePrsFromWorkout(cleaned, workoutDate);
 
     if (!savedWorkoutNames.includes(workoutName)) {
       setSavedWorkoutNames([...savedWorkoutNames, workoutName]);
@@ -751,9 +854,7 @@ export default function Home() {
           <div style={styles.headerTop}>
             <div>
               <h1 style={styles.title}>Gym Tracker</h1>
-              <p style={styles.subtitle}>
-                Logged in as {session.user.email}
-              </p>
+              <p style={styles.subtitle}>Logged in as {session.user.email}</p>
             </div>
             <div style={styles.row}>
               <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
@@ -763,6 +864,32 @@ export default function Home() {
             </div>
           </div>
         </div>
+
+        {newPrs.length > 0 && (
+          <div style={styles.card}>
+            <h2 style={styles.sectionTitle}>
+              🔥 New PR{newPrs.length > 1 ? "s" : ""}
+            </h2>
+
+            {newPrs.map((pr) => (
+              <div key={pr.id} style={styles.listCard}>
+                <h3 style={styles.listTitle}>{pr.exercise}</h3>
+                <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
+                  <div>Best Weight: {pr.best_weight}</div>
+                  <div>Best Reps: {pr.best_reps}</div>
+                  <div>Estimated 1RM: {pr.estimated_1rm}</div>
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={() => setNewPrs([])}
+              style={styles.secondaryButton}
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         <div style={styles.nav}>
           <button
@@ -855,6 +982,33 @@ export default function Home() {
                   <div>Physique Notes: {latestProgress.physique || "-"}</div>
                 </div>
               </div>
+            </div>
+
+            <div style={styles.card}>
+              <h2 style={styles.sectionTitle}>Personal Records</h2>
+
+              {prLog.length === 0 ? (
+                <div style={styles.empty}>
+                  No PRs yet. Save workouts to build your PR list.
+                </div>
+              ) : (
+                prLog.slice(0, 8).map((pr) => (
+                  <div key={pr.id} style={styles.listCard}>
+                    <div style={styles.listHeader}>
+                      <div>
+                        <h3 style={styles.listTitle}>{pr.exercise}</h3>
+                        <p style={styles.listMeta}>{pr.date || "No date"}</p>
+                      </div>
+                    </div>
+
+                    <div style={{ lineHeight: "1.8", fontSize: "14px" }}>
+                      <div>Best Weight: {pr.best_weight}</div>
+                      <div>Best Reps: {pr.best_reps}</div>
+                      <div>Estimated 1RM: {pr.estimated_1rm}</div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
             <div style={styles.card}>
