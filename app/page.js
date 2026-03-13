@@ -18,7 +18,7 @@ export default function Home() {
 
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
-
+  const [isSignup, setIsSignup] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const [weight, setWeight] = useState("");
