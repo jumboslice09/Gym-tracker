@@ -1959,9 +1959,9 @@ Store your workouts, PRs, bodyweight, and progress in one place.
                 ))
               )}
             </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+                </>
+              )}
+            </div>
+            </div>
+          );
+        }
