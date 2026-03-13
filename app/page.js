@@ -1011,11 +1011,9 @@ export default function Home() {
           <div style={styles.authLogo}>🏋️</div>
   
            <h1 style={styles.authTitle}>FitVault</h1>
-            <p style={styles.authSubtitle}>
-              Track workouts, PRs, bodyweight, measurements, and progress all in
-              one place.
-            </p>
-
+          <p style={styles.authSubtitle}>
+Store your workouts, PRs, bodyweight, and progress in one place.
+</p>
             <div style={styles.authTabs}>
               <button
                 onClick={() => setIsSignup(false)}
