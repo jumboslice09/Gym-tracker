@@ -19,6 +19,7 @@ export default function Home() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const [weight, setWeight] = useState("");
@@ -175,6 +176,7 @@ export default function Home() {
     }
 
     alert("Account created. Now log in.");
+    setIsSignup(false);
   }
 
   async function signIn() {
@@ -642,132 +644,132 @@ export default function Home() {
       boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     },
     authPage: {
-  minHeight: "100vh",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "24px",
-  background:
-    "radial-gradient(circle at top, rgba(220,38,38,0.16) 0%, rgba(5,5,5,1) 32%, rgba(5,5,5,1) 100%)",
-},
-authOuter: {
-  position: "relative",
-  width: "100%",
-  maxWidth: "460px",
-},
-authGlow1: {
-  position: "absolute",
-  top: "-40px",
-  left: "-30px",
-  width: "140px",
-  height: "140px",
-  borderRadius: "999px",
-  background: "rgba(220,38,38,0.18)",
-  filter: "blur(40px)",
-},
-authGlow2: {
-  position: "absolute",
-  bottom: "-50px",
-  right: "-20px",
-  width: "160px",
-  height: "160px",
-  borderRadius: "999px",
-  background: "rgba(255,255,255,0.05)",
-  filter: "blur(50px)",
-},
-authCardPro: {
-  position: "relative",
-  background: "rgba(17,17,17,0.82)",
-  border: "1px solid rgba(255,255,255,0.08)",
-  borderRadius: "28px",
-  padding: "32px",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-  backdropFilter: "blur(14px)",
-},
-authLogo: {
-  width: "64px",
-  height: "64px",
-  borderRadius: "20px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  margin: "0 auto 18px auto",
-  background: "rgba(220,38,38,0.12)",
-  border: "1px solid rgba(220,38,38,0.25)",
-  fontSize: "30px",
-},
-authTitle: {
-  margin: 0,
-  fontSize: "42px",
-  fontWeight: 900,
-  letterSpacing: "-0.04em",
-  textAlign: "center",
-},
-authSubtitle: {
-  margin: "10px 0 24px 0",
-  color: colors.muted,
-  fontSize: "15px",
-  lineHeight: 1.6,
-  textAlign: "center",
-},
-authTabs: {
-  display: "flex",
-  gap: "8px",
-  backgroundColor: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(255,255,255,0.06)",
-  borderRadius: "16px",
-  padding: "6px",
-  marginBottom: "20px",
-},
-authTab: (active) => ({
-  flex: 1,
-  border: "none",
-  borderRadius: "12px",
-  padding: "12px 14px",
-  fontWeight: 800,
-  fontSize: "14px",
-  cursor: "pointer",
-  backgroundColor: active ? colors.accent : "transparent",
-  color: "#fff",
-  boxShadow: active ? "0 10px 24px rgba(220,38,38,0.18)" : "none",
-}),
-authPrimaryButton: {
-  width: "100%",
-  backgroundColor: colors.accent,
-  color: "#fff",
-  border: "none",
-  padding: "14px 18px",
-  borderRadius: "14px",
-  fontWeight: 800,
-  cursor: "pointer",
-  fontSize: "15px",
-  boxShadow: "0 10px 24px rgba(220,38,38,0.18)",
-  marginTop: "6px",
-},
-authFooterRow: {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: "12px",
-  flexWrap: "wrap",
-  marginTop: "16px",
-},
-authLink: {
-  background: "none",
-  border: "none",
-  color: "#f87171",
-  fontSize: "14px",
-  fontWeight: 700,
-  cursor: "pointer",
-  padding: 0,
-},
-mutedButton: {
-  background: "none",
-  border: "none",
-  color: colors.muted,
-  fontSize: "14px",
-  cursor: "pointer",
-  padding: 0,
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "24px",
+      background:
+        "radial-gradient(circle at top, rgba(220,38,38,0.16) 0%, rgba(5,5,5,1) 32%, rgba(5,5,5,1) 100%)",
+    },
+    authOuter: {
+      position: "relative",
+      width: "100%",
+      maxWidth: "460px",
+    },
+    authGlow1: {
+      position: "absolute",
+      top: "-40px",
+      left: "-30px",
+      width: "140px",
+      height: "140px",
+      borderRadius: "999px",
+      background: "rgba(220,38,38,0.18)",
+      filter: "blur(40px)",
+    },
+    authGlow2: {
+      position: "absolute",
+      bottom: "-50px",
+      right: "-20px",
+      width: "160px",
+      height: "160px",
+      borderRadius: "999px",
+      background: "rgba(255,255,255,0.05)",
+      filter: "blur(50px)",
+    },
+    authCardPro: {
+      position: "relative",
+      background: "rgba(17,17,17,0.82)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: "28px",
+      padding: "32px",
+      boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+      backdropFilter: "blur(14px)",
+    },
+    authLogo: {
+      width: "64px",
+      height: "64px",
+      borderRadius: "20px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      margin: "0 auto 18px auto",
+      background: "rgba(220,38,38,0.12)",
+      border: "1px solid rgba(220,38,38,0.25)",
+      fontSize: "30px",
+    },
+    authTitle: {
+      margin: 0,
+      fontSize: "42px",
+      fontWeight: 900,
+      letterSpacing: "-0.04em",
+      textAlign: "center",
+    },
+    authSubtitle: {
+      margin: "10px 0 24px 0",
+      color: colors.muted,
+      fontSize: "15px",
+      lineHeight: 1.6,
+      textAlign: "center",
+    },
+    authTabs: {
+      display: "flex",
+      gap: "8px",
+      backgroundColor: "rgba(255,255,255,0.04)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: "16px",
+      padding: "6px",
+      marginBottom: "20px",
+    },
+    authTab: (active) => ({
+      flex: 1,
+      border: "none",
+      borderRadius: "12px",
+      padding: "12px 14px",
+      fontWeight: 800,
+      fontSize: "14px",
+      cursor: "pointer",
+      backgroundColor: active ? colors.accent : "transparent",
+      color: "#fff",
+      boxShadow: active ? "0 10px 24px rgba(220,38,38,0.18)" : "none",
+    }),
+    authPrimaryButton: {
+      width: "100%",
+      backgroundColor: colors.accent,
+      color: "#fff",
+      border: "none",
+      padding: "14px 18px",
+      borderRadius: "14px",
+      fontWeight: 800,
+      cursor: "pointer",
+      fontSize: "15px",
+      boxShadow: "0 10px 24px rgba(220,38,38,0.18)",
+      marginTop: "6px",
+    },
+    authFooterRow: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      flexWrap: "wrap",
+      marginTop: "16px",
+    },
+    authLink: {
+      background: "none",
+      border: "none",
+      color: "#f87171",
+      fontSize: "14px",
+      fontWeight: 700,
+      cursor: "pointer",
+      padding: 0,
+    },
+    mutedButton: {
+      background: "none",
+      border: "none",
+      color: colors.muted,
+      fontSize: "14px",
+      cursor: "pointer",
+      padding: 0,
     },
     shell: {
       maxWidth: "1200px",
@@ -803,7 +805,7 @@ mutedButton: {
     badge: {
       backgroundColor: "rgba(220, 38, 38, 0.14)",
       color: "#fca5a5",
-      border: `1px solid rgba(220, 38, 38, 0.28)`,
+      border: "1px solid rgba(220, 38, 38, 0.28)",
       borderRadius: "999px",
       padding: "10px 14px",
       fontSize: "13px",
@@ -963,17 +965,18 @@ mutedButton: {
       gap: "10px",
       flexWrap: "wrap",
       alignItems: "center",
-  chartWrap: {
-  width: "100%",
-  height: "320px",
-  marginTop: "8px",
-  },
-empty: {
-  color: colors.muted,
-  fontSize: "14px",
-  padding: "8px 0",
-},
-};
+    },
+    chartWrap: {
+      width: "100%",
+      height: "320px",
+      marginTop: "8px",
+    },
+    empty: {
+      color: colors.muted,
+      fontSize: "14px",
+      padding: "8px 0",
+    },
+  };
 
   if (loading) {
     return (
@@ -985,77 +988,77 @@ empty: {
     );
   }
 
-  if (!session) 
-  return (
-    <div style={styles.authPage}>
-      <div style={styles.authOuter}>
-        <div style={styles.authGlow1} />
-        <div style={styles.authGlow2} />
+  if (!session) {
+    return (
+      <div style={styles.authPage}>
+        <div style={styles.authOuter}>
+          <div style={styles.authGlow1} />
+          <div style={styles.authGlow2} />
 
-        <div style={styles.authCardPro}>
-          <div style={styles.authLogo}>🏋️</div>
+          <div style={styles.authCardPro}>
+            <div style={styles.authLogo}>🏋️</div>
 
-          <h1 style={styles.authTitle}>Gym Tracker</h1>
-          <p style={styles.authSubtitle}>
-            Track workouts, PRs, bodyweight, measurements, and progress all in
-            one place.
-          </p>
+            <h1 style={styles.authTitle}>Gym Tracker</h1>
+            <p style={styles.authSubtitle}>
+              Track workouts, PRs, bodyweight, measurements, and progress all in
+              one place.
+            </p>
 
-          <div style={styles.authTabs}>
-            <button
-              onClick={() => setIsSignup(false)}
-              style={styles.authTab(!isSignup)}
-            >
-              Log In
-            </button>
-            <button
-              onClick={() => setIsSignup(true)}
-              style={styles.authTab(isSignup)}
-            >
-              Create Account
-            </button>
-          </div>
+            <div style={styles.authTabs}>
+              <button
+                onClick={() => setIsSignup(false)}
+                style={styles.authTab(!isSignup)}
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => setIsSignup(true)}
+                style={styles.authTab(isSignup)}
+              >
+                Create Account
+              </button>
+            </div>
 
-          <label style={styles.label}>Email</label>
-          <input
-            type="email"
-            placeholder="you@example.com"
-            value={authEmail}
-            onChange={(e) => setAuthEmail(e.target.value)}
-            style={styles.input}
-          />
+            <label style={styles.label}>Email</label>
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              style={styles.input}
+            />
 
-          <label style={styles.label}>Password</label>
-          <input
-            type="password"
-            placeholder="Enter your password"
-            value={authPassword}
-            onChange={(e) => setAuthPassword(e.target.value)}
-            style={styles.input}
-          />
-
-          <button
-            onClick={isSignup ? signUp : signIn}
-            style={styles.authPrimaryButton}
-          >
-            {isSignup ? "Create Account" : "Log In"}
-          </button>
-
-          <div style={styles.authFooterRow}>
-            <button style={styles.mutedButton}>Forgot password?</button>
+            <label style={styles.label}>Password</label>
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              style={styles.input}
+            />
 
             <button
-              onClick={() => setIsSignup((prev) => !prev)}
-              style={styles.authLink}
+              onClick={isSignup ? signUp : signIn}
+              style={styles.authPrimaryButton}
             >
-              {isSignup ? "Already have an account?" : "Need an account?"}
+              {isSignup ? "Create Account" : "Log In"}
             </button>
+
+            <div style={styles.authFooterRow}>
+              <button style={styles.mutedButton}>Forgot password?</button>
+
+              <button
+                onClick={() => setIsSignup((prev) => !prev)}
+                style={styles.authLink}
+              >
+                {isSignup ? "Already have an account?" : "Need an account?"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div style={styles.page}>
