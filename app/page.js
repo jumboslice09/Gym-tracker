@@ -963,18 +963,17 @@ mutedButton: {
       gap: "10px",
       flexWrap: "wrap",
       alignItems: "center",
-    },
-    chartWrap: {
-      width: "100%",
-      height: "320px",
-      marginTop: "8px",
-    },
-    empty: {
-      color: colors.muted,
-      fontSize: "14px",
-      padding: "8px 0",
-    },
-    };
+  chartWrap: {
+  width: "100%",
+  height: "320px",
+  marginTop: "8px",
+  },
+empty: {
+  color: colors.muted,
+  fontSize: "14px",
+  padding: "8px 0",
+},
+};
 
   if (loading) {
     return (
