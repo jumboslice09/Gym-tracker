@@ -687,6 +687,18 @@ export default function Home() {
       backdropFilter: "blur(14px)",
     },
     authLogo: {
+  width: "64px",
+  height: "64px",
+  borderRadius: "20px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  margin: "0 auto 18px auto",
+  background: "rgba(220,38,38,0.12)",
+  border: "1px solid rgba(220,38,38,0.25)",
+  fontSize: "32px",
+  },
+    authLogo: {
       width: "64px",
       height: "64px",
       borderRadius: "20px",
@@ -996,9 +1008,9 @@ export default function Home() {
           <div style={styles.authGlow2} />
 
           <div style={styles.authCardPro}>
-            <div style={styles.authLogo}>🏋️</div>
-
-            <h1 style={styles.authTitle}>Gym Tracker</h1>
+          <div style={styles.authLogo}>🏋️</div>
+  
+           <h1 style={styles.authTitle}>FitVault</h1>
             <p style={styles.authSubtitle}>
               Track workouts, PRs, bodyweight, measurements, and progress all in
               one place.
