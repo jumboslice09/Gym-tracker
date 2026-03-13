@@ -625,7 +625,8 @@ export default function Home() {
 
   const styles = {
     page: {
-      backgroundColor: colors.bg,
+      background:
+        "radial-gradient(circle at top, rgba(220,38,38,0.08) 0%, rgba(5,5,5,1) 22%, rgba(5,5,5,1) 100%)",
       minHeight: "100vh",
       color: colors.text,
       padding: "24px",
@@ -650,7 +651,7 @@ export default function Home() {
       justifyContent: "center",
       padding: "24px",
       background:
-        "radial-gradient(circle at top, rgba(220,38,38,0.16) 0%, rgba(5,5,5,1) 32%, rgba(5,5,5,1) 100%)",
+        "radial-gradient(circle at top, rgba(220,38,38,0.18) 0%, rgba(9,9,9,1) 34%, rgba(5,5,5,1) 100%)",
     },
     authOuter: {
       position: "relative",
@@ -659,69 +660,62 @@ export default function Home() {
     },
     authGlow1: {
       position: "absolute",
-      top: "-40px",
-      left: "-30px",
-      width: "140px",
-      height: "140px",
+      top: "-50px",
+      left: "-40px",
+      width: "170px",
+      height: "170px",
       borderRadius: "999px",
-      background: "rgba(220,38,38,0.18)",
-      filter: "blur(40px)",
+      background: "rgba(220,38,38,0.20)",
+      filter: "blur(50px)",
+      pointerEvents: "none",
     },
     authGlow2: {
       position: "absolute",
-      bottom: "-50px",
-      right: "-20px",
-      width: "160px",
-      height: "160px",
+      bottom: "-60px",
+      right: "-30px",
+      width: "180px",
+      height: "180px",
       borderRadius: "999px",
-      background: "rgba(255,255,255,0.05)",
-      filter: "blur(50px)",
+      background: "rgba(255,255,255,0.06)",
+      filter: "blur(60px)",
+      pointerEvents: "none",
     },
     authCardPro: {
       position: "relative",
-      background: "rgba(17,17,17,0.82)",
+      background:
+        "linear-gradient(180deg, rgba(17,17,17,0.95) 0%, rgba(11,11,11,0.95) 100%)",
       border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: "28px",
-      padding: "32px",
-      boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-      backdropFilter: "blur(14px)",
+      borderRadius: "30px",
+      padding: "34px",
+      boxShadow: "0 24px 80px rgba(0,0,0,0.50)",
+      backdropFilter: "blur(16px)",
+      overflow: "hidden",
     },
     authLogo: {
-  width: "64px",
-  height: "64px",
-  borderRadius: "20px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  margin: "0 auto 18px auto",
-  background: "rgba(220,38,38,0.12)",
-  border: "1px solid rgba(220,38,38,0.25)",
-  fontSize: "32px",
-  },
-    authLogo: {
-      width: "64px",
-      height: "64px",
-      borderRadius: "20px",
+      width: "70px",
+      height: "70px",
+      borderRadius: "22px",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       margin: "0 auto 18px auto",
       background: "rgba(220,38,38,0.12)",
       border: "1px solid rgba(220,38,38,0.25)",
-      fontSize: "30px",
+      fontSize: "34px",
+      boxShadow: "0 12px 30px rgba(220,38,38,0.12)",
     },
     authTitle: {
       margin: 0,
-      fontSize: "42px",
+      fontSize: "44px",
       fontWeight: 900,
-      letterSpacing: "-0.04em",
+      letterSpacing: "-0.05em",
       textAlign: "center",
     },
     authSubtitle: {
-      margin: "10px 0 24px 0",
-      color: colors.muted,
+      margin: "12px 0 26px 0",
+      color: "#b5b5b5",
       fontSize: "15px",
-      lineHeight: 1.6,
+      lineHeight: 1.7,
       textAlign: "center",
     },
     authTabs: {
@@ -731,7 +725,7 @@ export default function Home() {
       border: "1px solid rgba(255,255,255,0.06)",
       borderRadius: "16px",
       padding: "6px",
-      marginBottom: "20px",
+      marginBottom: "22px",
     },
     authTab: (active) => ({
       flex: 1,
@@ -741,21 +735,23 @@ export default function Home() {
       fontWeight: 800,
       fontSize: "14px",
       cursor: "pointer",
-      backgroundColor: active ? colors.accent : "transparent",
+      background: active
+        ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
+        : "transparent",
       color: "#fff",
       boxShadow: active ? "0 10px 24px rgba(220,38,38,0.18)" : "none",
     }),
     authPrimaryButton: {
       width: "100%",
-      backgroundColor: colors.accent,
+      background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
       color: "#fff",
-      border: "none",
+      border: "1px solid rgba(220,38,38,0.30)",
       padding: "14px 18px",
       borderRadius: "14px",
       fontWeight: 800,
       cursor: "pointer",
       fontSize: "15px",
-      boxShadow: "0 10px 24px rgba(220,38,38,0.18)",
+      boxShadow: "0 12px 28px rgba(220,38,38,0.20)",
       marginTop: "6px",
     },
     authFooterRow: {
@@ -788,12 +784,14 @@ export default function Home() {
       margin: "0 auto",
     },
     headerCard: {
-      background: "linear-gradient(135deg, #111111 0%, #161616 100%)",
-      border: `1px solid ${colors.border}`,
-      borderRadius: "22px",
-      padding: "24px",
-      marginBottom: "18px",
-      boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
+      background:
+        "linear-gradient(135deg, rgba(17,17,17,0.96) 0%, rgba(22,22,22,0.96) 100%)",
+      border: "1px solid rgba(255,255,255,0.08)",
+      borderRadius: "24px",
+      padding: "28px",
+      marginBottom: "22px",
+      boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
+      backdropFilter: "blur(10px)",
     },
     headerTop: {
       display: "flex",
@@ -804,53 +802,64 @@ export default function Home() {
     },
     title: {
       margin: 0,
-      fontSize: "36px",
-      fontWeight: 800,
-      letterSpacing: "-0.03em",
+      fontSize: "40px",
+      fontWeight: 900,
+      letterSpacing: "-0.04em",
     },
     subtitle: {
-      margin: "8px 0 0 0",
-      color: colors.muted,
+      margin: "10px 0 0 0",
+      color: "#b4b4b4",
       fontSize: "15px",
-      lineHeight: 1.5,
+      lineHeight: 1.6,
     },
     badge: {
-      backgroundColor: "rgba(220, 38, 38, 0.14)",
-      color: "#fca5a5",
-      border: "1px solid rgba(220, 38, 38, 0.28)",
+      background:
+        "linear-gradient(135deg, rgba(220,38,38,0.16), rgba(127,29,29,0.22))",
+      color: "#fecaca",
+      border: "1px solid rgba(220,38,38,0.30)",
       borderRadius: "999px",
-      padding: "10px 14px",
+      padding: "10px 16px",
       fontSize: "13px",
-      fontWeight: 700,
+      fontWeight: 800,
       whiteSpace: "nowrap",
+      boxShadow: "0 10px 24px rgba(220,38,38,0.12)",
     },
     nav: {
       display: "flex",
       gap: "10px",
-      marginBottom: "18px",
+      marginBottom: "22px",
       flexWrap: "wrap",
+      padding: "8px",
+      borderRadius: "18px",
+      background: "rgba(255,255,255,0.03)",
+      border: "1px solid rgba(255,255,255,0.05)",
     },
     tabButton: (tab) => ({
-      backgroundColor: activeTab === tab ? colors.accent : colors.panel,
+      background:
+        activeTab === tab
+          ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
+          : "transparent",
       color: colors.text,
-      border: `1px solid ${
-        activeTab === tab ? colors.accent : colors.border
-      }`,
-      padding: "12px 16px",
-      borderRadius: "12px",
-      fontWeight: 700,
+      border:
+        activeTab === tab
+          ? "1px solid rgba(220,38,38,0.35)"
+          : "1px solid transparent",
+      padding: "12px 18px",
+      borderRadius: "14px",
+      fontWeight: 800,
       fontSize: "14px",
       cursor: "pointer",
       boxShadow:
-        activeTab === tab ? "0 10px 24px rgba(220,38,38,0.18)" : "none",
+        activeTab === tab ? "0 12px 28px rgba(220,38,38,0.20)" : "none",
     }),
     card: {
-      backgroundColor: colors.panel,
-      border: `1px solid ${colors.border}`,
-      borderRadius: "18px",
-      padding: "20px",
-      marginBottom: "18px",
-      boxShadow: "0 6px 20px rgba(0,0,0,0.22)",
+      background: "rgba(17,17,17,0.94)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "22px",
+      padding: "22px",
+      marginBottom: "20px",
+      boxShadow: "0 14px 36px rgba(0,0,0,0.30)",
+      backdropFilter: "blur(10px)",
     },
     sectionTitle: {
       marginTop: 0,
@@ -871,10 +880,12 @@ export default function Home() {
       gap: "12px",
     },
     statCard: {
-      backgroundColor: colors.panel2,
-      border: `1px solid ${colors.borderSoft}`,
-      borderRadius: "16px",
-      padding: "16px",
+      background:
+        "linear-gradient(180deg, rgba(14,14,14,1) 0%, rgba(10,10,10,1) 100%)",
+      border: "1px solid rgba(255,255,255,0.06)",
+      borderRadius: "18px",
+      padding: "18px",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.03)",
     },
     statLabel: {
       color: colors.muted,
@@ -883,9 +894,9 @@ export default function Home() {
       fontWeight: 600,
     },
     statValue: {
-      fontSize: "24px",
-      fontWeight: 800,
-      letterSpacing: "-0.02em",
+      fontSize: "28px",
+      fontWeight: 900,
+      letterSpacing: "-0.03em",
     },
     statSub: {
       marginTop: "6px",
@@ -899,7 +910,7 @@ export default function Home() {
     },
     input: {
       padding: "13px 14px",
-      borderRadius: "12px",
+      borderRadius: "14px",
       border: `1px solid ${colors.border}`,
       backgroundColor: "#0a0a0a",
       color: colors.text,
@@ -908,31 +919,32 @@ export default function Home() {
       boxSizing: "border-box",
       fontSize: "15px",
       outline: "none",
+      boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)",
     },
     label: {
       fontSize: "13px",
       color: colors.muted,
       marginBottom: "6px",
       display: "block",
-      fontWeight: 600,
+      fontWeight: 700,
     },
     primaryButton: {
-      backgroundColor: colors.accent,
+      background: "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)",
       color: "#fff",
-      border: "none",
+      border: "1px solid rgba(220,38,38,0.30)",
       padding: "12px 18px",
-      borderRadius: "12px",
-      fontWeight: 700,
+      borderRadius: "14px",
+      fontWeight: 800,
       cursor: "pointer",
       fontSize: "14px",
-      boxShadow: "0 10px 24px rgba(220,38,38,0.18)",
+      boxShadow: "0 12px 28px rgba(220,38,38,0.18)",
     },
     secondaryButton: {
-      backgroundColor: "#161616",
+      background: "rgba(255,255,255,0.03)",
       color: colors.text,
-      border: `1px solid ${colors.border}`,
+      border: "1px solid rgba(255,255,255,0.08)",
       padding: "12px 18px",
-      borderRadius: "12px",
+      borderRadius: "14px",
       fontWeight: 700,
       cursor: "pointer",
       fontSize: "14px",
@@ -948,11 +960,12 @@ export default function Home() {
       fontWeight: 700,
     },
     listCard: {
-      border: `1px solid ${colors.borderSoft}`,
-      backgroundColor: colors.panel2,
-      borderRadius: "16px",
+      border: "1px solid rgba(255,255,255,0.06)",
+      background: "rgba(11,11,11,0.92)",
+      borderRadius: "18px",
       padding: "16px",
-      marginBottom: "12px",
+      marginBottom: "14px",
+      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
     },
     listHeader: {
       display: "flex",
@@ -994,7 +1007,7 @@ export default function Home() {
     return (
       <div style={styles.page}>
         <div style={styles.authWrap}>
-          <div style={styles.authCard}>Loading...</div>
+          <div style={styles.authCard}>Loading FitVault...</div>
         </div>
       </div>
     );
@@ -1008,12 +1021,13 @@ export default function Home() {
           <div style={styles.authGlow2} />
 
           <div style={styles.authCardPro}>
-          <div style={styles.authLogo}>🏋️</div>
-  
-           <h1 style={styles.authTitle}>FitVault</h1>
-          <p style={styles.authSubtitle}>
-Store your workouts, PRs, bodyweight, and progress in one place.
-</p>
+            <div style={styles.authLogo}>🏋️</div>
+
+            <h1 style={styles.authTitle}>FitVault</h1>
+            <p style={styles.authSubtitle}>
+              Store your workouts, PRs, bodyweight, and progress in one place.
+            </p>
+
             <div style={styles.authTabs}>
               <button
                 onClick={() => setIsSignup(false)}
@@ -1075,30 +1089,31 @@ Store your workouts, PRs, bodyweight, and progress in one place.
       <div style={styles.shell}>
         <div style={styles.headerCard}>
           <div style={styles.headerTop}>
-            <div>
-    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-  <div
-    style={{
-      width: "48px",
-      height: "48px",
-      borderRadius: "14px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "rgba(220,38,38,0.14)",
-      border: "1px solid rgba(220,38,38,0.25)",
-      fontSize: "24px",
-    }}
-  >
-    🏋️
-  <div>
-  <div>
-    <h1 style={styles.title}>FitVault</h1>
-    <p style={styles.subtitle}>Welcome back, {session.user.email}</p>
-  </div>
-</div>
-              <p style={styles.subtitle}>Logged in as {session.user.email}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div
+                style={{
+                  width: "48px",
+                  height: "48px",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background: "rgba(220,38,38,0.14)",
+                  border: "1px solid rgba(220,38,38,0.25)",
+                  fontSize: "24px",
+                }}
+              >
+                🏋️
+              </div>
+
+              <div>
+                <h1 style={styles.title}>FitVault</h1>
+                <p style={styles.subtitle}>
+                  Welcome back, {session.user.email}
+                </p>
+              </div>
             </div>
+
             <div style={styles.row}>
               <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
               <button onClick={signOut} style={styles.secondaryButton}>
@@ -1959,9 +1974,9 @@ Store your workouts, PRs, bodyweight, and progress in one place.
                 ))
               )}
             </div>
-                </>
-              )}
-            </div>
-            </div>
-          );
-        }
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
