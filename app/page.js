@@ -42,76 +42,105 @@ function safeRemove(key) {
 export default function Home() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
 
-  const [activeTab, setActiveTab] = useState(() =>
-    safeLoad("fitvault_active_tab", "dashboard")
-  );
+  const [activeTab, setActiveTab] = useState("dashboard");
 
-  const [weight, setWeight] = useState(() =>
-    safeLoad("fitvault_weight_input", "")
-  );
-  const [weightDate, setWeightDate] = useState(() =>
-    safeLoad("fitvault_weight_date", new Date().toISOString().split("T")[0])
+  const [weight, setWeight] = useState("");
+  const [weightDate, setWeightDate] = useState(
+    new Date().toISOString().split("T")[0]
   );
   const [log, setLog] = useState([]);
 
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
 
-  const [liveWorkout, setLiveWorkout] = useState(() =>
-    safeLoad("fitvault_live_workout", {
-      name: "",
-      date: new Date().toLocaleDateString(),
-      exercises: [],
-    })
-  );
+  const [liveWorkout, setLiveWorkout] = useState({
+    name: "",
+    date: new Date().toLocaleDateString(),
+    exercises: [],
+  });
 
-  const [secondsElapsed, setSecondsElapsed] = useState(() =>
-    safeLoad("fitvault_seconds_elapsed", 0)
-  );
-  const [timerRunning, setTimerRunning] = useState(() =>
-    safeLoad("fitvault_timer_running", false)
-  );
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
+  const [timerRunning, setTimerRunning] = useState(false);
 
-  const [measurementForm, setMeasurementForm] = useState(() =>
-    safeLoad("fitvault_measurement_form", {
-      date: new Date().toLocaleDateString(),
-      arms: "",
-      chest: "",
-      waist: "",
-      legs: "",
-      calves: "",
-      shoulders: "",
-    })
-  );
+  const [measurementForm, setMeasurementForm] = useState({
+    date: new Date().toLocaleDateString(),
+    arms: "",
+    chest: "",
+    waist: "",
+    legs: "",
+    calves: "",
+    shoulders: "",
+  });
   const [measurementLog, setMeasurementLog] = useState([]);
   const [selectedMeasurement, setSelectedMeasurement] = useState("arms");
 
-  const [progressForm, setProgressForm] = useState(() =>
-    safeLoad("fitvault_progress_form", {
-      week: "",
-      weight: "",
-      bench: "",
-      squat: "",
-      deadlift: "",
-      arms: "",
-      waist: "",
-      physique: "",
-    })
-  );
+  const [progressForm, setProgressForm] = useState({
+    week: "",
+    weight: "",
+    bench: "",
+    squat: "",
+    deadlift: "",
+    arms: "",
+    waist: "",
+    physique: "",
+  });
   const [progressLog, setProgressLog] = useState([]);
 
-  const [dietTitle, setDietTitle] = useState(() =>
-    safeLoad("fitvault_diet_title", "")
-  );
-  const [dietNotes, setDietNotes] = useState(() =>
-    safeLoad("fitvault_diet_notes", "")
-  );
+  const [dietTitle, setDietTitle] = useState("");
+  const [dietNotes, setDietNotes] = useState("");
   const [dietLog, setDietLog] = useState([]);
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    setActiveTab(safeLoad("fitvault_active_tab", "dashboard"));
+    setWeight(safeLoad("fitvault_weight_input", ""));
+    setWeightDate(
+      safeLoad("fitvault_weight_date", new Date().toISOString().split("T")[0])
+    );
+    setLiveWorkout(
+      safeLoad("fitvault_live_workout", {
+        name: "",
+        date: new Date().toLocaleDateString(),
+        exercises: [],
+      })
+    );
+    setSecondsElapsed(safeLoad("fitvault_seconds_elapsed", 0));
+    setTimerRunning(safeLoad("fitvault_timer_running", false));
+    setMeasurementForm(
+      safeLoad("fitvault_measurement_form", {
+        date: new Date().toLocaleDateString(),
+        arms: "",
+        chest: "",
+        waist: "",
+        legs: "",
+        calves: "",
+        shoulders: "",
+      })
+    );
+    setProgressForm(
+      safeLoad("fitvault_progress_form", {
+        week: "",
+        weight: "",
+        bench: "",
+        squat: "",
+        deadlift: "",
+        arms: "",
+        waist: "",
+        physique: "",
+      })
+    );
+    setDietTitle(safeLoad("fitvault_diet_title", ""));
+    setDietNotes(safeLoad("fitvault_diet_notes", ""));
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -1131,7 +1160,7 @@ export default function Home() {
     },
   };
 
-  if (loading) {
+  if (loading || !hydrated) {
     return (
       <div style={styles.page}>
         <div style={styles.authWrap}>
