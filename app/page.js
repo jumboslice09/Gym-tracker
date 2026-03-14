@@ -593,7 +593,6 @@ export default function Home() {
       user_id: session.user.id,
       name: liveWorkout.name,
       date: liveWorkout.date,
-      duration_seconds: secondsElapsed,
       exercises: formattedForStorage,
     };
 
@@ -1128,7 +1127,7 @@ export default function Home() {
       color: colors.muted,
       fontSize: "13px",
       marginBottom: "8px",
-      fontWeight: 700,
+      fontWeight: 600,
     },
     statValue: {
       fontSize: "28px",
@@ -1565,14 +1564,6 @@ export default function Home() {
                   <AppIcon size={14}>⏱️</AppIcon>
                   {formatTime(secondsElapsed)}
                 </div>
-                <div style={styles.miniBadge}>
-                  <AppIcon size={14}>💾</AppIcon>
-                  Draft auto-saves if you leave the app
-                </div>
-                <div style={styles.miniBadge}>
-                  <AppIcon size={14}>☁️</AppIcon>
-                  Completed workouts save permanently
-                </div>
               </div>
 
               <div style={{ ...styles.row, marginBottom: "18px" }}>
@@ -1793,12 +1784,7 @@ export default function Home() {
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{workout.name}</h3>
-                        <p style={styles.listMeta}>
-                          {workout.date || "No date"}
-                          {workout.duration_seconds
-                            ? ` • ${formatTime(workout.duration_seconds)}`
-                            : ""}
-                        </p>
+                        <p style={styles.listMeta}>{workout.date || "No date"}</p>
                       </div>
                       <button
                         onClick={() => deleteWorkout(workout.id)}
