@@ -36,6 +36,18 @@ function safeRemove(key) {
   } catch {}
 }
 
+function persistWeights(entries) {
+  safeSave("fitvault_saved_weights", entries);
+}
+
+function persistWorkouts(entries) {
+  safeSave("fitvault_saved_workouts", entries);
+}
+
+function persistWorkoutNames(names) {
+  safeSave("fitvault_saved_workout_names", names);
+}
+
 function AppIcon({ children, size = 20 }) {
   return (
     <span
@@ -196,6 +208,7 @@ export default function Home() {
     safeSave("fitvault_progress_form", progressForm);
     safeSave("fitvault_food_form", foodForm);
     safeSave("fitvault_food_log_date", foodLogDate);
+    safeSave("fitvault_saved_food_log", foodLog);
   }, [
     activeTab,
     weight,
@@ -207,20 +220,8 @@ export default function Home() {
     progressForm,
     foodForm,
     foodLogDate,
+    foodLog,
   ]);
-
-  useEffect(() => {
-    safeSave("fitvault_saved_weights", log);
-  }, [log]);
-
-  useEffect(() => {
-    safeSave("fitvault_saved_workouts", workoutLog);
-    safeSave("fitvault_saved_workout_names", savedWorkoutNames);
-  }, [workoutLog, savedWorkoutNames]);
-
-  useEffect(() => {
-    safeSave("fitvault_saved_food_log", foodLog);
-  }, [foodLog]);
 
   async function fetchAllUserData() {
     const userId = session?.user?.id;
@@ -262,15 +263,19 @@ export default function Home() {
 
     if (!weightsResult.error && weightsResult.data) {
       setLog(weightsResult.data);
+      persistWeights(weightsResult.data);
       setWeightSynced(true);
     }
 
     if (!workoutsResult.error && workoutsResult.data) {
       setWorkoutLog(workoutsResult.data);
+      persistWorkouts(workoutsResult.data);
+
       const names = [
         ...new Set(workoutsResult.data.map((w) => w.name).filter(Boolean)),
       ];
       setSavedWorkoutNames(names);
+      persistWorkoutNames(names);
       setWorkoutSynced(true);
     }
 
@@ -415,7 +420,10 @@ export default function Home() {
       return;
     }
 
-    setLog([data, ...log]);
+    const updatedWeights = [data, ...log];
+    setLog(updatedWeights);
+    persistWeights(updatedWeights);
+
     setWeight("");
     setWeightDate(todayISO());
     safeRemove("fitvault_weight_input");
@@ -430,7 +438,9 @@ export default function Home() {
       return;
     }
 
-    setLog(log.filter((item) => item.id !== id));
+    const updatedWeights = log.filter((item) => item.id !== id);
+    setLog(updatedWeights);
+    persistWeights(updatedWeights);
   }
 
   function formatTime(totalSeconds) {
@@ -604,10 +614,16 @@ export default function Home() {
       return;
     }
 
-    setWorkoutLog([data, ...workoutLog]);
+    const updatedWorkouts = [data, ...workoutLog];
+    setWorkoutLog(updatedWorkouts);
+    persistWorkouts(updatedWorkouts);
 
     if (!savedWorkoutNames.includes(liveWorkout.name)) {
-      setSavedWorkoutNames([...savedWorkoutNames, liveWorkout.name]);
+      const updatedNames = [...savedWorkoutNames, liveWorkout.name];
+      setSavedWorkoutNames(updatedNames);
+      persistWorkoutNames(updatedNames);
+    } else {
+      persistWorkoutNames(savedWorkoutNames);
     }
 
     setLiveWorkout(defaultLiveWorkout());
@@ -626,7 +642,15 @@ export default function Home() {
       return;
     }
 
-    setWorkoutLog(workoutLog.filter((item) => item.id !== id));
+    const updatedWorkouts = workoutLog.filter((item) => item.id !== id);
+    setWorkoutLog(updatedWorkouts);
+    persistWorkouts(updatedWorkouts);
+
+    const updatedNames = [
+      ...new Set(updatedWorkouts.map((w) => w.name).filter(Boolean)),
+    ];
+    setSavedWorkoutNames(updatedNames);
+    persistWorkoutNames(updatedNames);
   }
 
   async function addMeasurement() {
@@ -2319,7 +2343,7 @@ export default function Home() {
                 <div>
                   <label style={styles.label}>Water Amount</label>
                   <input
-                    placeholder='Example: 16 oz or 1 bottle'
+                    placeholder="Example: 16 oz or 1 bottle"
                     value={foodForm.waterAmount}
                     onChange={(e) =>
                       setFoodForm((prev) => ({
