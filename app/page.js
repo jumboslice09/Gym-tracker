@@ -54,6 +54,46 @@ function AppIcon({ children, size = 20 }) {
   );
 }
 
+const todayISO = () => new Date().toISOString().split("T")[0];
+
+const defaultLiveWorkout = () => ({
+  name: "",
+  date: new Date().toLocaleDateString(),
+  exercises: [],
+});
+
+const defaultMeasurementForm = () => ({
+  date: new Date().toLocaleDateString(),
+  arms: "",
+  chest: "",
+  waist: "",
+  legs: "",
+  calves: "",
+  shoulders: "",
+});
+
+const defaultProgressForm = () => ({
+  week: "",
+  weight: "",
+  bench: "",
+  squat: "",
+  deadlift: "",
+  arms: "",
+  waist: "",
+  physique: "",
+});
+
+const defaultFoodForm = () => ({
+  date: todayISO(),
+  meal: "Breakfast",
+  foodName: "",
+  calories: "",
+  protein: "",
+  carbs: "",
+  fats: "",
+  waterAmount: "",
+});
+
 export default function Home() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -66,50 +106,30 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const [weight, setWeight] = useState("");
-  const [weightDate, setWeightDate] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [weightDate, setWeightDate] = useState(todayISO());
   const [log, setLog] = useState([]);
+  const [weightSynced, setWeightSynced] = useState(false);
 
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
+  const [workoutSynced, setWorkoutSynced] = useState(false);
 
-  const [liveWorkout, setLiveWorkout] = useState({
-    name: "",
-    date: new Date().toLocaleDateString(),
-    exercises: [],
-  });
-
+  const [liveWorkout, setLiveWorkout] = useState(defaultLiveWorkout());
   const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
 
-  const [measurementForm, setMeasurementForm] = useState({
-    date: new Date().toLocaleDateString(),
-    arms: "",
-    chest: "",
-    waist: "",
-    legs: "",
-    calves: "",
-    shoulders: "",
-  });
+  const [measurementForm, setMeasurementForm] = useState(
+    defaultMeasurementForm()
+  );
   const [measurementLog, setMeasurementLog] = useState([]);
   const [selectedMeasurement, setSelectedMeasurement] = useState("arms");
 
-  const [progressForm, setProgressForm] = useState({
-    week: "",
-    weight: "",
-    bench: "",
-    squat: "",
-    deadlift: "",
-    arms: "",
-    waist: "",
-    physique: "",
-  });
+  const [progressForm, setProgressForm] = useState(defaultProgressForm());
   const [progressLog, setProgressLog] = useState([]);
 
-  const [dietTitle, setDietTitle] = useState("");
-  const [dietNotes, setDietNotes] = useState("");
-  const [dietLog, setDietLog] = useState([]);
+  const [foodForm, setFoodForm] = useState(defaultFoodForm());
+  const [foodLog, setFoodLog] = useState([]);
+  const [foodLogDate, setFoodLogDate] = useState(todayISO());
 
   useEffect(() => {
     setHydrated(true);
@@ -118,43 +138,20 @@ export default function Home() {
   useEffect(() => {
     setActiveTab(safeLoad("fitvault_active_tab", "dashboard"));
     setWeight(safeLoad("fitvault_weight_input", ""));
-    setWeightDate(
-      safeLoad("fitvault_weight_date", new Date().toISOString().split("T")[0])
-    );
-    setLiveWorkout(
-      safeLoad("fitvault_live_workout", {
-        name: "",
-        date: new Date().toLocaleDateString(),
-        exercises: [],
-      })
-    );
+    setWeightDate(safeLoad("fitvault_weight_date", todayISO()));
+    setLog(safeLoad("fitvault_saved_weights", []));
+    setWorkoutLog(safeLoad("fitvault_saved_workouts", []));
+    setSavedWorkoutNames(safeLoad("fitvault_saved_workout_names", []));
+    setLiveWorkout(safeLoad("fitvault_live_workout", defaultLiveWorkout()));
     setSecondsElapsed(safeLoad("fitvault_seconds_elapsed", 0));
     setTimerRunning(safeLoad("fitvault_timer_running", false));
     setMeasurementForm(
-      safeLoad("fitvault_measurement_form", {
-        date: new Date().toLocaleDateString(),
-        arms: "",
-        chest: "",
-        waist: "",
-        legs: "",
-        calves: "",
-        shoulders: "",
-      })
+      safeLoad("fitvault_measurement_form", defaultMeasurementForm())
     );
-    setProgressForm(
-      safeLoad("fitvault_progress_form", {
-        week: "",
-        weight: "",
-        bench: "",
-        squat: "",
-        deadlift: "",
-        arms: "",
-        waist: "",
-        physique: "",
-      })
-    );
-    setDietTitle(safeLoad("fitvault_diet_title", ""));
-    setDietNotes(safeLoad("fitvault_diet_notes", ""));
+    setProgressForm(safeLoad("fitvault_progress_form", defaultProgressForm()));
+    setFoodForm(safeLoad("fitvault_food_form", defaultFoodForm()));
+    setFoodLogDate(safeLoad("fitvault_food_log_date", todayISO()));
+    setFoodLog(safeLoad("fitvault_saved_food_log", []));
   }, []);
 
   useEffect(() => {
@@ -197,8 +194,8 @@ export default function Home() {
     safeSave("fitvault_timer_running", timerRunning);
     safeSave("fitvault_measurement_form", measurementForm);
     safeSave("fitvault_progress_form", progressForm);
-    safeSave("fitvault_diet_title", dietTitle);
-    safeSave("fitvault_diet_notes", dietNotes);
+    safeSave("fitvault_food_form", foodForm);
+    safeSave("fitvault_food_log_date", foodLogDate);
   }, [
     activeTab,
     weight,
@@ -208,9 +205,22 @@ export default function Home() {
     timerRunning,
     measurementForm,
     progressForm,
-    dietTitle,
-    dietNotes,
+    foodForm,
+    foodLogDate,
   ]);
+
+  useEffect(() => {
+    safeSave("fitvault_saved_weights", log);
+  }, [log]);
+
+  useEffect(() => {
+    safeSave("fitvault_saved_workouts", workoutLog);
+    safeSave("fitvault_saved_workout_names", savedWorkoutNames);
+  }, [workoutLog, savedWorkoutNames]);
+
+  useEffect(() => {
+    safeSave("fitvault_saved_food_log", foodLog);
+  }, [foodLog]);
 
   async function fetchAllUserData() {
     const userId = session?.user?.id;
@@ -221,7 +231,7 @@ export default function Home() {
       workoutsResult,
       measurementsResult,
       progressResult,
-      dietResult,
+      foodResult,
     ] = await Promise.all([
       supabase
         .from("weight_logs")
@@ -250,7 +260,10 @@ export default function Home() {
         .order("created_at", { ascending: false }),
     ]);
 
-    if (!weightsResult.error && weightsResult.data) setLog(weightsResult.data);
+    if (!weightsResult.error && weightsResult.data) {
+      setLog(weightsResult.data);
+      setWeightSynced(true);
+    }
 
     if (!workoutsResult.error && workoutsResult.data) {
       setWorkoutLog(workoutsResult.data);
@@ -258,6 +271,7 @@ export default function Home() {
         ...new Set(workoutsResult.data.map((w) => w.name).filter(Boolean)),
       ];
       setSavedWorkoutNames(names);
+      setWorkoutSynced(true);
     }
 
     if (!measurementsResult.error && measurementsResult.data) {
@@ -268,8 +282,8 @@ export default function Home() {
       setProgressLog(progressResult.data);
     }
 
-    if (!dietResult.error && dietResult.data) {
-      setDietLog(dietResult.data);
+    if (!foodResult.error && foodResult.data) {
+      setFoodLog(foodResult.data);
     }
   }
 
@@ -317,40 +331,19 @@ export default function Home() {
     setSavedWorkoutNames([]);
     setMeasurementLog([]);
     setProgressLog([]);
-    setDietLog([]);
+    setFoodLog([]);
 
     setWeight("");
-    setWeightDate(new Date().toISOString().split("T")[0]);
+    setWeightDate(todayISO());
 
-    setLiveWorkout({
-      name: "",
-      date: new Date().toLocaleDateString(),
-      exercises: [],
-    });
+    setLiveWorkout(defaultLiveWorkout());
+    setMeasurementForm(defaultMeasurementForm());
+    setProgressForm(defaultProgressForm());
+    setFoodForm(defaultFoodForm());
+    setFoodLogDate(todayISO());
 
-    setMeasurementForm({
-      date: new Date().toLocaleDateString(),
-      arms: "",
-      chest: "",
-      waist: "",
-      legs: "",
-      calves: "",
-      shoulders: "",
-    });
-
-    setProgressForm({
-      week: "",
-      weight: "",
-      bench: "",
-      squat: "",
-      deadlift: "",
-      arms: "",
-      waist: "",
-      physique: "",
-    });
-
-    setDietTitle("");
-    setDietNotes("");
+    setWeightSynced(false);
+    setWorkoutSynced(false);
 
     resetWorkoutTimer();
 
@@ -358,13 +351,17 @@ export default function Home() {
       "fitvault_active_tab",
       "fitvault_weight_input",
       "fitvault_weight_date",
+      "fitvault_saved_weights",
+      "fitvault_saved_workouts",
+      "fitvault_saved_workout_names",
       "fitvault_live_workout",
       "fitvault_seconds_elapsed",
       "fitvault_timer_running",
       "fitvault_measurement_form",
       "fitvault_progress_form",
-      "fitvault_diet_title",
-      "fitvault_diet_notes",
+      "fitvault_food_form",
+      "fitvault_food_log_date",
+      "fitvault_saved_food_log",
     ].forEach(safeRemove);
   }
 
@@ -420,7 +417,7 @@ export default function Home() {
 
     setLog([data, ...log]);
     setWeight("");
-    setWeightDate(new Date().toISOString().split("T")[0]);
+    setWeightDate(todayISO());
     safeRemove("fitvault_weight_input");
     safeRemove("fitvault_weight_date");
   }
@@ -613,12 +610,7 @@ export default function Home() {
       setSavedWorkoutNames([...savedWorkoutNames, liveWorkout.name]);
     }
 
-    setLiveWorkout({
-      name: "",
-      date: new Date().toLocaleDateString(),
-      exercises: [],
-    });
-
+    setLiveWorkout(defaultLiveWorkout());
     resetWorkoutTimer();
     safeRemove("fitvault_live_workout");
     safeRemove("fitvault_seconds_elapsed");
@@ -668,15 +660,7 @@ export default function Home() {
     }
 
     setMeasurementLog([data, ...measurementLog]);
-    setMeasurementForm({
-      date: new Date().toLocaleDateString(),
-      arms: "",
-      chest: "",
-      waist: "",
-      legs: "",
-      calves: "",
-      shoulders: "",
-    });
+    setMeasurementForm(defaultMeasurementForm());
     safeRemove("fitvault_measurement_form");
   }
 
@@ -714,16 +698,7 @@ export default function Home() {
     }
 
     setProgressLog([data, ...progressLog]);
-    setProgressForm({
-      week: "",
-      weight: "",
-      bench: "",
-      squat: "",
-      deadlift: "",
-      arms: "",
-      waist: "",
-      physique: "",
-    });
+    setProgressForm(defaultProgressForm());
     safeRemove("fitvault_progress_form");
   }
 
@@ -741,19 +716,40 @@ export default function Home() {
     setProgressLog(progressLog.filter((item) => item.id !== id));
   }
 
-  async function addDietNote() {
-    if (!dietTitle || !session?.user?.id) return;
+  async function addFoodEntry() {
+    if (!session?.user?.id) return;
 
-    const newNote = {
+    const isWater = foodForm.meal === "Water";
+
+    if (isWater) {
+      if (!foodForm.waterAmount) {
+        alert("Enter water amount.");
+        return;
+      }
+    } else {
+      if (!foodForm.foodName || !foodForm.calories) {
+        alert("Enter a food name and calories.");
+        return;
+      }
+    }
+
+    const payload = {
       user_id: session.user.id,
-      title: dietTitle,
-      notes: dietNotes,
-      date: new Date().toLocaleDateString(),
+      date: foodForm.date,
+      meal: foodForm.meal,
+      food_name: isWater ? null : foodForm.foodName,
+      calories: isWater ? 0 : Number(foodForm.calories || 0),
+      protein: isWater ? 0 : Number(foodForm.protein || 0),
+      carbs: isWater ? 0 : Number(foodForm.carbs || 0),
+      fats: isWater ? 0 : Number(foodForm.fats || 0),
+      water_amount: isWater ? foodForm.waterAmount : null,
+      title: null,
+      notes: null,
     };
 
     const { data, error } = await supabase
       .from("diet_logs")
-      .insert(newNote)
+      .insert(payload)
       .select()
       .single();
 
@@ -762,14 +758,15 @@ export default function Home() {
       return;
     }
 
-    setDietLog([data, ...dietLog]);
-    setDietTitle("");
-    setDietNotes("");
-    safeRemove("fitvault_diet_title");
-    safeRemove("fitvault_diet_notes");
+    setFoodLog([data, ...foodLog]);
+    setFoodForm((prev) => ({
+      ...defaultFoodForm(),
+      date: prev.date,
+    }));
+    safeRemove("fitvault_food_form");
   }
 
-  async function deleteDietNote(id) {
+  async function deleteFoodEntry(id) {
     const { error } = await supabase.from("diet_logs").delete().eq("id", id);
 
     if (error) {
@@ -777,8 +774,51 @@ export default function Home() {
       return;
     }
 
-    setDietLog(dietLog.filter((item) => item.id !== id));
+    setFoodLog(foodLog.filter((item) => item.id !== id));
   }
+
+  const foodEntriesForSelectedDate = useMemo(() => {
+    return foodLog.filter((item) => item.date === foodLogDate);
+  }, [foodLog, foodLogDate]);
+
+  const mealOrder = ["Breakfast", "Lunch", "Dinner", "Snacks", "Water"];
+
+  const groupedFoodEntries = useMemo(() => {
+    const grouped = {
+      Breakfast: [],
+      Lunch: [],
+      Dinner: [],
+      Snacks: [],
+      Water: [],
+    };
+
+    foodEntriesForSelectedDate.forEach((entry) => {
+      const meal = entry.meal || "Snacks";
+      if (!grouped[meal]) grouped[meal] = [];
+      grouped[meal].push(entry);
+    });
+
+    return grouped;
+  }, [foodEntriesForSelectedDate]);
+
+  const foodTotals = useMemo(() => {
+    return foodEntriesForSelectedDate.reduce(
+      (acc, entry) => {
+        acc.calories += Number(entry.calories || 0);
+        acc.protein += Number(entry.protein || 0);
+        acc.carbs += Number(entry.carbs || 0);
+        acc.fats += Number(entry.fats || 0);
+
+        if (entry.meal === "Water" && entry.water_amount) {
+          const amount = parseFloat(String(entry.water_amount));
+          if (!Number.isNaN(amount)) acc.water += amount;
+        }
+
+        return acc;
+      },
+      { calories: 0, protein: 0, carbs: 0, fats: 0, water: 0 }
+    );
+  }, [foodEntriesForSelectedDate]);
 
   const colors = {
     bg: "#050505",
@@ -1019,6 +1059,18 @@ export default function Home() {
       whiteSpace: "nowrap",
       boxShadow: "0 10px 24px rgba(220,38,38,0.12)",
     },
+    syncPill: (ok) => ({
+      background: ok ? "rgba(22,163,74,0.14)" : "rgba(250,204,21,0.12)",
+      color: ok ? "#86efac" : "#fde68a",
+      border: ok
+        ? "1px solid rgba(22,163,74,0.30)"
+        : "1px solid rgba(250,204,21,0.30)",
+      borderRadius: "999px",
+      padding: "9px 14px",
+      fontSize: "12px",
+      fontWeight: 800,
+      whiteSpace: "nowrap",
+    }),
     desktopNav: {
       display: "flex",
       gap: "10px",
@@ -1255,6 +1307,54 @@ export default function Home() {
       fontSize: "12px",
       fontWeight: 700,
     },
+    foodMealCard: {
+      border: "1px solid rgba(255,255,255,0.06)",
+      background: "rgba(11,11,11,0.92)",
+      borderRadius: "18px",
+      padding: "16px",
+      marginBottom: "14px",
+      boxShadow: "0 8px 20px rgba(0,0,0,0.18)",
+    },
+    foodMealHeader: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "10px",
+      marginBottom: "12px",
+      flexWrap: "wrap",
+    },
+    foodMealTitle: {
+      margin: 0,
+      fontSize: "18px",
+      fontWeight: 800,
+    },
+    foodEntryRow: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "12px",
+      padding: "12px 0",
+      borderTop: "1px solid rgba(255,255,255,0.05)",
+      flexWrap: "wrap",
+    },
+    macroPillRow: {
+      display: "flex",
+      gap: "8px",
+      flexWrap: "wrap",
+      marginTop: "8px",
+    },
+    macroPill: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "6px 10px",
+      borderRadius: "999px",
+      border: "1px solid rgba(255,255,255,0.06)",
+      background: "rgba(255,255,255,0.03)",
+      color: "#ddd",
+      fontSize: "12px",
+      fontWeight: 700,
+    },
   };
 
   const navItems = [
@@ -1263,7 +1363,7 @@ export default function Home() {
     { key: "workouts", label: "Workouts", icon: "🏋️" },
     { key: "measurements", label: "Body", icon: "📏" },
     { key: "progress", label: "Progress", icon: "📈" },
-    { key: "diet", label: "Diet", icon: "🍽️" },
+    { key: "food", label: "Food", icon: "🍽️" },
   ];
 
   if (loading || !hydrated) {
@@ -1288,8 +1388,8 @@ export default function Home() {
 
             <h1 style={styles.authTitle}>FitVault</h1>
             <p style={styles.authSubtitle}>
-              Store workouts, completed sessions, PRs, bodyweight, measurements,
-              and progress in one place.
+              Store workouts, food, bodyweight, measurements, and progress in
+              one place.
             </p>
 
             <div style={styles.authTabs}>
@@ -1362,6 +1462,12 @@ export default function Home() {
 
           <div style={styles.headerControls}>
             <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
+            <div style={styles.syncPill(weightSynced)}>
+              {weightSynced ? "Weights synced" : "Weights cached"}
+            </div>
+            <div style={styles.syncPill(workoutSynced)}>
+              {workoutSynced ? "Workouts synced" : "Workouts cached"}
+            </div>
             <button onClick={signOut} style={styles.secondaryButton}>
               Log Out
             </button>
@@ -1401,12 +1507,12 @@ export default function Home() {
                 <div style={styles.statCard}>
                   <div style={styles.statLabel}>Completed Workouts</div>
                   <div style={styles.statValue}>{totalWorkouts}</div>
-                  <div style={styles.statSub}>Saved permanently to Supabase</div>
+                  <div style={styles.statSub}>Loaded after app restart</div>
                 </div>
                 <div style={styles.statCard}>
                   <div style={styles.statLabel}>Weigh-Ins Logged</div>
                   <div style={styles.statValue}>{totalWeightEntries}</div>
-                  <div style={styles.statSub}>Bodyweight entries saved</div>
+                  <div style={styles.statSub}>Loaded after app restart</div>
                 </div>
               </div>
             </div>
@@ -1529,7 +1635,7 @@ export default function Home() {
             </div>
 
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Weight History</h2>
+              <h2 style={styles.sectionTitle}>Saved Weights</h2>
               {log.length === 0 ? (
                 <div style={styles.empty}>No weight entries yet.</div>
               ) : (
@@ -1775,7 +1881,7 @@ export default function Home() {
             </div>
 
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Completed Workouts</h2>
+              <h2 style={styles.sectionTitle}>Saved Workouts</h2>
               {workoutLog.length === 0 ? (
                 <div style={styles.empty}>No completed workouts saved yet.</div>
               ) : (
@@ -2119,70 +2225,242 @@ export default function Home() {
           </>
         )}
 
-        {activeTab === "diet" && (
+        {activeTab === "food" && (
           <>
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Diet / Supplements / Notes</h2>
+              <div style={styles.listHeader}>
+                <div>
+                  <h2 style={styles.sectionTitle}>Food Log</h2>
+                </div>
+                <div style={{ minWidth: "220px" }}>
+                  <label style={styles.label}>Day</label>
+                  <input
+                    type="date"
+                    value={foodLogDate}
+                    onChange={(e) => {
+                      setFoodLogDate(e.target.value);
+                      setFoodForm((prev) => ({ ...prev, date: e.target.value }));
+                    }}
+                    style={{ ...styles.input, marginBottom: 0 }}
+                  />
+                </div>
+              </div>
 
-              <label style={styles.label}>Title</label>
-              <input
-                placeholder="Title"
-                value={dietTitle}
-                onChange={(e) => setDietTitle(e.target.value)}
-                style={styles.input}
-              />
-
-              <label style={styles.label}>Notes</label>
-              <textarea
-                placeholder="Notes"
-                value={dietNotes}
-                onChange={(e) => setDietNotes(e.target.value)}
-                style={{
-                  ...styles.input,
-                  minHeight: "120px",
-                  resize: "vertical",
-                }}
-              />
-
-              <button onClick={addDietNote} style={styles.primaryButton}>
-                Save Note
-              </button>
+              <div style={styles.statsGrid}>
+                <div style={styles.statCard}>
+                  <div style={styles.statLabel}>Calories</div>
+                  <div style={styles.statValue}>{foodTotals.calories}</div>
+                  <div style={styles.statSub}>Daily total</div>
+                </div>
+                <div style={styles.statCard}>
+                  <div style={styles.statLabel}>Protein</div>
+                  <div style={styles.statValue}>{foodTotals.protein}g</div>
+                  <div style={styles.statSub}>Daily total</div>
+                </div>
+                <div style={styles.statCard}>
+                  <div style={styles.statLabel}>Carbs</div>
+                  <div style={styles.statValue}>{foodTotals.carbs}g</div>
+                  <div style={styles.statSub}>Daily total</div>
+                </div>
+                <div style={styles.statCard}>
+                  <div style={styles.statLabel}>Fats</div>
+                  <div style={styles.statValue}>{foodTotals.fats}g</div>
+                  <div style={styles.statSub}>Daily total</div>
+                </div>
+                <div style={styles.statCard}>
+                  <div style={styles.statLabel}>Water</div>
+                  <div style={styles.statValue}>{foodTotals.water}</div>
+                  <div style={styles.statSub}>Total amount logged</div>
+                </div>
+              </div>
             </div>
 
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Saved Notes</h2>
-              {dietLog.length === 0 ? (
-                <div style={styles.empty}>No notes saved yet.</div>
+              <h2 style={styles.sectionTitle}>Add Food</h2>
+
+              <div style={styles.grid2}>
+                <div>
+                  <label style={styles.label}>Meal</label>
+                  <select
+                    value={foodForm.meal}
+                    onChange={(e) =>
+                      setFoodForm((prev) => ({
+                        ...prev,
+                        meal: e.target.value,
+                      }))
+                    }
+                    style={styles.input}
+                  >
+                    <option>Breakfast</option>
+                    <option>Lunch</option>
+                    <option>Dinner</option>
+                    <option>Snacks</option>
+                    <option>Water</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={styles.label}>Date</label>
+                  <input
+                    type="date"
+                    value={foodForm.date}
+                    onChange={(e) =>
+                      setFoodForm((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
+                    }
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+
+              {foodForm.meal === "Water" ? (
+                <div>
+                  <label style={styles.label}>Water Amount</label>
+                  <input
+                    placeholder='Example: 16 oz or 1 bottle'
+                    value={foodForm.waterAmount}
+                    onChange={(e) =>
+                      setFoodForm((prev) => ({
+                        ...prev,
+                        waterAmount: e.target.value,
+                      }))
+                    }
+                    style={styles.input}
+                  />
+                </div>
               ) : (
-                dietLog.map((item) => (
-                  <div key={item.id} style={styles.listCard}>
-                    <div style={styles.listHeader}>
-                      <div>
-                        <h3 style={styles.listTitle}>{item.title}</h3>
-                        <p style={styles.listMeta}>{item.date}</p>
+                <>
+                  <label style={styles.label}>Food Name</label>
+                  <input
+                    placeholder="Example: 5 oz grilled chicken"
+                    value={foodForm.foodName}
+                    onChange={(e) =>
+                      setFoodForm((prev) => ({
+                        ...prev,
+                        foodName: e.target.value,
+                      }))
+                    }
+                    style={styles.input}
+                  />
+
+                  <div style={styles.grid2}>
+                    <div>
+                      <label style={styles.label}>Calories</label>
+                      <input
+                        placeholder="250"
+                        value={foodForm.calories}
+                        onChange={(e) =>
+                          setFoodForm((prev) => ({
+                            ...prev,
+                            calories: e.target.value,
+                          }))
+                        }
+                        style={styles.input}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={styles.label}>Protein (g)</label>
+                      <input
+                        placeholder="46"
+                        value={foodForm.protein}
+                        onChange={(e) =>
+                          setFoodForm((prev) => ({
+                            ...prev,
+                            protein: e.target.value,
+                          }))
+                        }
+                        style={styles.input}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={styles.label}>Carbs (g)</label>
+                      <input
+                        placeholder="0"
+                        value={foodForm.carbs}
+                        onChange={(e) =>
+                          setFoodForm((prev) => ({
+                            ...prev,
+                            carbs: e.target.value,
+                          }))
+                        }
+                        style={styles.input}
+                      />
+                    </div>
+
+                    <div>
+                      <label style={styles.label}>Fats (g)</label>
+                      <input
+                        placeholder="5"
+                        value={foodForm.fats}
+                        onChange={(e) =>
+                          setFoodForm((prev) => ({
+                            ...prev,
+                            fats: e.target.value,
+                          }))
+                        }
+                        style={styles.input}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <button onClick={addFoodEntry} style={styles.primaryButton}>
+                Save Food Entry
+              </button>
+            </div>
+
+            {mealOrder.map((meal) => (
+              <div key={meal} style={styles.foodMealCard}>
+                <div style={styles.foodMealHeader}>
+                  <h3 style={styles.foodMealTitle}>{meal}</h3>
+                </div>
+
+                {groupedFoodEntries[meal].length === 0 ? (
+                  <div style={styles.empty}>No entries yet.</div>
+                ) : (
+                  groupedFoodEntries[meal].map((entry) => (
+                    <div key={entry.id} style={styles.foodEntryRow}>
+                      <div style={{ flex: 1, minWidth: "220px" }}>
+                        <div style={{ fontWeight: 800, fontSize: "15px" }}>
+                          {meal === "Water"
+                            ? entry.water_amount || "Water"
+                            : entry.food_name}
+                        </div>
+
+                        {meal !== "Water" && (
+                          <div style={styles.macroPillRow}>
+                            <div style={styles.macroPill}>
+                              {Number(entry.calories || 0)} kcal
+                            </div>
+                            <div style={styles.macroPill}>
+                              P {Number(entry.protein || 0)}g
+                            </div>
+                            <div style={styles.macroPill}>
+                              C {Number(entry.carbs || 0)}g
+                            </div>
+                            <div style={styles.macroPill}>
+                              F {Number(entry.fats || 0)}g
+                            </div>
+                          </div>
+                        )}
                       </div>
+
                       <button
-                        onClick={() => deleteDietNote(item.id)}
+                        onClick={() => deleteFoodEntry(entry.id)}
                         style={styles.deleteButton}
                       >
                         Delete
                       </button>
                     </div>
-
-                    <p
-                      style={{
-                        marginTop: "12px",
-                        whiteSpace: "pre-wrap",
-                        lineHeight: "1.7",
-                        fontSize: "14px",
-                      }}
-                    >
-                      {item.notes}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            ))}
           </>
         )}
       </div>
