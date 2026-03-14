@@ -12,6 +12,33 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
+function safeLoad(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function safeSave(key, value) {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
+
+function safeRemove(key) {
+  if (typeof window === "undefined") return;
+
+  try {
+    localStorage.removeItem(key);
+  } catch {}
+}
+
 export default function Home() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,49 +47,70 @@ export default function Home() {
   const [authPassword, setAuthPassword] = useState("");
   const [isSignup, setIsSignup] = useState(false);
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(() =>
+    safeLoad("fitvault_active_tab", "dashboard")
+  );
 
-  const [weight, setWeight] = useState("");
+  const [weight, setWeight] = useState(() =>
+    safeLoad("fitvault_weight_input", "")
+  );
+  const [weightDate, setWeightDate] = useState(() =>
+    safeLoad("fitvault_weight_date", new Date().toISOString().split("T")[0])
+  );
   const [log, setLog] = useState([]);
 
   const [workoutLog, setWorkoutLog] = useState([]);
   const [savedWorkoutNames, setSavedWorkoutNames] = useState([]);
 
-  const [liveWorkout, setLiveWorkout] = useState({
-    name: "",
-    date: new Date().toLocaleDateString(),
-    exercises: [],
-  });
+  const [liveWorkout, setLiveWorkout] = useState(() =>
+    safeLoad("fitvault_live_workout", {
+      name: "",
+      date: new Date().toLocaleDateString(),
+      exercises: [],
+    })
+  );
 
-  const [secondsElapsed, setSecondsElapsed] = useState(0);
-  const [timerRunning, setTimerRunning] = useState(false);
+  const [secondsElapsed, setSecondsElapsed] = useState(() =>
+    safeLoad("fitvault_seconds_elapsed", 0)
+  );
+  const [timerRunning, setTimerRunning] = useState(() =>
+    safeLoad("fitvault_timer_running", false)
+  );
 
-  const [measurementForm, setMeasurementForm] = useState({
-    date: new Date().toLocaleDateString(),
-    arms: "",
-    chest: "",
-    waist: "",
-    legs: "",
-    calves: "",
-    shoulders: "",
-  });
+  const [measurementForm, setMeasurementForm] = useState(() =>
+    safeLoad("fitvault_measurement_form", {
+      date: new Date().toLocaleDateString(),
+      arms: "",
+      chest: "",
+      waist: "",
+      legs: "",
+      calves: "",
+      shoulders: "",
+    })
+  );
   const [measurementLog, setMeasurementLog] = useState([]);
   const [selectedMeasurement, setSelectedMeasurement] = useState("arms");
 
-  const [progressForm, setProgressForm] = useState({
-    week: "",
-    weight: "",
-    bench: "",
-    squat: "",
-    deadlift: "",
-    arms: "",
-    waist: "",
-    physique: "",
-  });
+  const [progressForm, setProgressForm] = useState(() =>
+    safeLoad("fitvault_progress_form", {
+      week: "",
+      weight: "",
+      bench: "",
+      squat: "",
+      deadlift: "",
+      arms: "",
+      waist: "",
+      physique: "",
+    })
+  );
   const [progressLog, setProgressLog] = useState([]);
 
-  const [dietTitle, setDietTitle] = useState("");
-  const [dietNotes, setDietNotes] = useState("");
+  const [dietTitle, setDietTitle] = useState(() =>
+    safeLoad("fitvault_diet_title", "")
+  );
+  const [dietNotes, setDietNotes] = useState(() =>
+    safeLoad("fitvault_diet_notes", "")
+  );
   const [dietLog, setDietLog] = useState([]);
 
   useEffect(() => {
@@ -97,6 +145,30 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, [timerRunning]);
+
+  useEffect(() => {
+    safeSave("fitvault_active_tab", activeTab);
+    safeSave("fitvault_weight_input", weight);
+    safeSave("fitvault_weight_date", weightDate);
+    safeSave("fitvault_live_workout", liveWorkout);
+    safeSave("fitvault_seconds_elapsed", secondsElapsed);
+    safeSave("fitvault_timer_running", timerRunning);
+    safeSave("fitvault_measurement_form", measurementForm);
+    safeSave("fitvault_progress_form", progressForm);
+    safeSave("fitvault_diet_title", dietTitle);
+    safeSave("fitvault_diet_notes", dietNotes);
+  }, [
+    activeTab,
+    weight,
+    weightDate,
+    liveWorkout,
+    secondsElapsed,
+    timerRunning,
+    measurementForm,
+    progressForm,
+    dietTitle,
+    dietNotes,
+  ]);
 
   async function fetchAllUserData() {
     const userId = session?.user?.id;
@@ -197,18 +269,59 @@ export default function Home() {
 
   async function signOut() {
     await supabase.auth.signOut();
+
     setLog([]);
     setWorkoutLog([]);
     setSavedWorkoutNames([]);
     setMeasurementLog([]);
     setProgressLog([]);
     setDietLog([]);
+
+    setWeight("");
+    setWeightDate(new Date().toISOString().split("T")[0]);
+
     setLiveWorkout({
       name: "",
       date: new Date().toLocaleDateString(),
       exercises: [],
     });
+
+    setMeasurementForm({
+      date: new Date().toLocaleDateString(),
+      arms: "",
+      chest: "",
+      waist: "",
+      legs: "",
+      calves: "",
+      shoulders: "",
+    });
+
+    setProgressForm({
+      week: "",
+      weight: "",
+      bench: "",
+      squat: "",
+      deadlift: "",
+      arms: "",
+      waist: "",
+      physique: "",
+    });
+
+    setDietTitle("");
+    setDietNotes("");
+
     resetWorkoutTimer();
+
+    safeRemove("fitvault_active_tab");
+    safeRemove("fitvault_weight_input");
+    safeRemove("fitvault_weight_date");
+    safeRemove("fitvault_live_workout");
+    safeRemove("fitvault_seconds_elapsed");
+    safeRemove("fitvault_timer_running");
+    safeRemove("fitvault_measurement_form");
+    safeRemove("fitvault_progress_form");
+    safeRemove("fitvault_diet_title");
+    safeRemove("fitvault_diet_notes");
   }
 
   const weightChartData = useMemo(() => {
@@ -248,7 +361,7 @@ export default function Home() {
 
     const newEntry = {
       user_id: session.user.id,
-      date: new Date().toLocaleDateString(),
+      date: weightDate,
       weight: Number(weight),
     };
 
@@ -265,6 +378,10 @@ export default function Home() {
 
     setLog([data, ...log]);
     setWeight("");
+    setWeightDate(new Date().toISOString().split("T")[0]);
+
+    safeRemove("fitvault_weight_input");
+    safeRemove("fitvault_weight_date");
   }
 
   async function deleteWeightEntry(id) {
@@ -456,6 +573,10 @@ export default function Home() {
     });
 
     resetWorkoutTimer();
+
+    safeRemove("fitvault_live_workout");
+    safeRemove("fitvault_seconds_elapsed");
+    safeRemove("fitvault_timer_running");
   }
 
   async function deleteWorkout(id) {
@@ -510,6 +631,8 @@ export default function Home() {
       calves: "",
       shoulders: "",
     });
+
+    safeRemove("fitvault_measurement_form");
   }
 
   async function deleteMeasurement(id) {
@@ -557,6 +680,8 @@ export default function Home() {
       waist: "",
       physique: "",
     });
+
+    safeRemove("fitvault_progress_form");
   }
 
   async function deleteProgress(id) {
@@ -597,6 +722,9 @@ export default function Home() {
     setDietLog([data, ...dietLog]);
     setDietTitle("");
     setDietNotes("");
+
+    safeRemove("fitvault_diet_title");
+    safeRemove("fitvault_diet_notes");
   }
 
   async function deleteDietNote(id) {
@@ -1251,7 +1379,7 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Log Bodyweight</h2>
               <div style={styles.row}>
-                <div style={{ minWidth: "240px", flex: 1 }}>
+                <div style={{ minWidth: "220px", flex: 1 }}>
                   <label style={styles.label}>Bodyweight</label>
                   <input
                     placeholder="Enter weight"
@@ -1260,6 +1388,17 @@ export default function Home() {
                     style={styles.input}
                   />
                 </div>
+
+                <div style={{ minWidth: "220px", flex: 1 }}>
+                  <label style={styles.label}>Date</label>
+                  <input
+                    type="date"
+                    value={weightDate}
+                    onChange={(e) => setWeightDate(e.target.value)}
+                    style={styles.input}
+                  />
+                </div>
+
                 <div style={{ display: "flex", alignItems: "end" }}>
                   <button onClick={addWeight} style={styles.primaryButton}>
                     Save Weight
