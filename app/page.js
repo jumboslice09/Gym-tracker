@@ -14,7 +14,6 @@ import {
 
 function safeLoad(key, fallback) {
   if (typeof window === "undefined") return fallback;
-
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
@@ -25,7 +24,6 @@ function safeLoad(key, fallback) {
 
 function safeSave(key, value) {
   if (typeof window === "undefined") return;
-
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {}
@@ -33,10 +31,27 @@ function safeSave(key, value) {
 
 function safeRemove(key) {
   if (typeof window === "undefined") return;
-
   try {
     localStorage.removeItem(key);
   } catch {}
+}
+
+function AppIcon({ children, size = 20 }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: size + 10,
+        height: size + 10,
+        fontSize: size,
+        lineHeight: 1,
+      }}
+    >
+      {children}
+    </span>
+  );
 }
 
 export default function Home() {
@@ -165,13 +180,11 @@ export default function Home() {
 
   useEffect(() => {
     let interval;
-
     if (timerRunning) {
       interval = setInterval(() => {
         setSecondsElapsed((prev) => prev + 1);
       }, 1000);
     }
-
     return () => clearInterval(interval);
   }, [timerRunning]);
 
@@ -341,21 +354,21 @@ export default function Home() {
 
     resetWorkoutTimer();
 
-    safeRemove("fitvault_active_tab");
-    safeRemove("fitvault_weight_input");
-    safeRemove("fitvault_weight_date");
-    safeRemove("fitvault_live_workout");
-    safeRemove("fitvault_seconds_elapsed");
-    safeRemove("fitvault_timer_running");
-    safeRemove("fitvault_measurement_form");
-    safeRemove("fitvault_progress_form");
-    safeRemove("fitvault_diet_title");
-    safeRemove("fitvault_diet_notes");
+    [
+      "fitvault_active_tab",
+      "fitvault_weight_input",
+      "fitvault_weight_date",
+      "fitvault_live_workout",
+      "fitvault_seconds_elapsed",
+      "fitvault_timer_running",
+      "fitvault_measurement_form",
+      "fitvault_progress_form",
+      "fitvault_diet_title",
+      "fitvault_diet_notes",
+    ].forEach(safeRemove);
   }
 
-  const weightChartData = useMemo(() => {
-    return [...log].reverse();
-  }, [log]);
+  const weightChartData = useMemo(() => [...log].reverse(), [log]);
 
   const measurementChartData = useMemo(() => {
     return [...measurementLog]
@@ -408,7 +421,6 @@ export default function Home() {
     setLog([data, ...log]);
     setWeight("");
     setWeightDate(new Date().toISOString().split("T")[0]);
-
     safeRemove("fitvault_weight_input");
     safeRemove("fitvault_weight_date");
   }
@@ -458,11 +470,9 @@ export default function Home() {
     updateLiveWorkoutName(selectedName);
 
     const latestMatch = workoutLog.find((w) => w.name === selectedName);
-
     if (!latestMatch || !latestMatch.exercises?.length) return;
 
     const grouped = {};
-
     latestMatch.exercises.forEach((ex) => {
       if (!grouped[ex.exercise]) grouped[ex.exercise] = [];
       grouped[ex.exercise].push({
@@ -544,7 +554,10 @@ export default function Home() {
   }
 
   async function addWorkout() {
-    if (!liveWorkout.name || !session?.user?.id) return;
+    if (!liveWorkout.name || !session?.user?.id) {
+      alert("Add a workout name first.");
+      return;
+    }
 
     const cleanedExercises = liveWorkout.exercises
       .map((exercise) => ({
@@ -559,6 +572,11 @@ export default function Home() {
           })),
       }))
       .filter((exercise) => exercise.exercise);
+
+    if (!cleanedExercises.length) {
+      alert("Add at least one exercise with a set.");
+      return;
+    }
 
     const formattedForStorage = cleanedExercises.flatMap((exercise) =>
       exercise.sets.map((set) => ({
@@ -575,6 +593,7 @@ export default function Home() {
       user_id: session.user.id,
       name: liveWorkout.name,
       date: liveWorkout.date,
+      duration_seconds: secondsElapsed,
       exercises: formattedForStorage,
     };
 
@@ -602,10 +621,10 @@ export default function Home() {
     });
 
     resetWorkoutTimer();
-
     safeRemove("fitvault_live_workout");
     safeRemove("fitvault_seconds_elapsed");
     safeRemove("fitvault_timer_running");
+    setActiveTab("workouts");
   }
 
   async function deleteWorkout(id) {
@@ -650,7 +669,6 @@ export default function Home() {
     }
 
     setMeasurementLog([data, ...measurementLog]);
-
     setMeasurementForm({
       date: new Date().toLocaleDateString(),
       arms: "",
@@ -660,7 +678,6 @@ export default function Home() {
       calves: "",
       shoulders: "",
     });
-
     safeRemove("fitvault_measurement_form");
   }
 
@@ -698,7 +715,6 @@ export default function Home() {
     }
 
     setProgressLog([data, ...progressLog]);
-
     setProgressForm({
       week: "",
       weight: "",
@@ -709,7 +725,6 @@ export default function Home() {
       waist: "",
       physique: "",
     });
-
     safeRemove("fitvault_progress_form");
   }
 
@@ -751,7 +766,6 @@ export default function Home() {
     setDietLog([data, ...dietLog]);
     setDietTitle("");
     setDietNotes("");
-
     safeRemove("fitvault_diet_title");
     safeRemove("fitvault_diet_notes");
   }
@@ -777,22 +791,22 @@ export default function Home() {
     muted: "#a3a3a3",
     accent: "#dc2626",
     accentDark: "#991b1b",
-    green: "#16a34a",
   };
 
   const styles = {
     page: {
+      minHeight: "100dvh",
       background:
-        "radial-gradient(circle at top, rgba(220,38,38,0.08) 0%, rgba(5,5,5,1) 22%, rgba(5,5,5,1) 100%)",
-      minHeight: "100vh",
+        "radial-gradient(circle at top, rgba(220,38,38,0.10) 0%, rgba(8,8,8,1) 28%, rgba(5,5,5,1) 100%)",
       color: colors.text,
-      padding: "24px",
       fontFamily:
         'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+      paddingBottom: "92px",
     },
     authWrap: {
       maxWidth: "420px",
       margin: "60px auto",
+      padding: "24px",
     },
     authCard: {
       backgroundColor: "#111111",
@@ -802,7 +816,7 @@ export default function Home() {
       boxShadow: "0 10px 30px rgba(0,0,0,0.35)",
     },
     authPage: {
-      minHeight: "100vh",
+      minHeight: "100dvh",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -840,7 +854,7 @@ export default function Home() {
     authCardPro: {
       position: "relative",
       background:
-        "linear-gradient(180deg, rgba(17,17,17,0.95) 0%, rgba(11,11,11,0.95) 100%)",
+        "linear-gradient(180deg, rgba(17,17,17,0.96) 0%, rgba(11,11,11,0.96) 100%)",
       border: "1px solid rgba(255,255,255,0.08)",
       borderRadius: "30px",
       padding: "34px",
@@ -849,8 +863,8 @@ export default function Home() {
       overflow: "hidden",
     },
     authLogo: {
-      width: "70px",
-      height: "70px",
+      width: "72px",
+      height: "72px",
       borderRadius: "22px",
       display: "flex",
       alignItems: "center",
@@ -858,7 +872,7 @@ export default function Home() {
       margin: "0 auto 18px auto",
       background: "rgba(220,38,38,0.12)",
       border: "1px solid rgba(220,38,38,0.25)",
-      fontSize: "34px",
+      fontSize: "36px",
       boxShadow: "0 12px 30px rgba(220,38,38,0.12)",
     },
     authTitle: {
@@ -937,37 +951,62 @@ export default function Home() {
       padding: 0,
     },
     shell: {
-      maxWidth: "1200px",
+      maxWidth: "1240px",
       margin: "0 auto",
+      padding: "18px 18px 0 18px",
     },
-    headerCard: {
-      background:
-        "linear-gradient(135deg, rgba(17,17,17,0.96) 0%, rgba(22,22,22,0.96) 100%)",
-      border: "1px solid rgba(255,255,255,0.08)",
-      borderRadius: "24px",
-      padding: "28px",
-      marginBottom: "22px",
-      boxShadow: "0 18px 50px rgba(0,0,0,0.45)",
-      backdropFilter: "blur(10px)",
+    topBar: {
+      position: "sticky",
+      top: 0,
+      zIndex: 20,
+      background: "rgba(5,5,5,0.78)",
+      backdropFilter: "blur(14px)",
+      borderBottom: "1px solid rgba(255,255,255,0.05)",
     },
-    headerTop: {
+    topBarInner: {
+      maxWidth: "1240px",
+      margin: "0 auto",
+      padding: "12px 18px",
       display: "flex",
       justifyContent: "space-between",
-      alignItems: "flex-start",
-      gap: "16px",
+      alignItems: "center",
+      gap: "12px",
       flexWrap: "wrap",
+    },
+    brandRow: {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+    },
+    brandIcon: {
+      width: "46px",
+      height: "46px",
+      borderRadius: "14px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      background: "rgba(220,38,38,0.14)",
+      border: "1px solid rgba(220,38,38,0.25)",
+      fontSize: "24px",
+      boxShadow: "0 10px 24px rgba(220,38,38,0.12)",
     },
     title: {
       margin: 0,
-      fontSize: "40px",
+      fontSize: "34px",
       fontWeight: 900,
       letterSpacing: "-0.04em",
     },
     subtitle: {
-      margin: "10px 0 0 0",
+      margin: "6px 0 0 0",
       color: "#b4b4b4",
-      fontSize: "15px",
-      lineHeight: 1.6,
+      fontSize: "14px",
+      lineHeight: 1.5,
+    },
+    headerControls: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      flexWrap: "wrap",
     },
     badge: {
       background:
@@ -981,10 +1020,10 @@ export default function Home() {
       whiteSpace: "nowrap",
       boxShadow: "0 10px 24px rgba(220,38,38,0.12)",
     },
-    nav: {
+    desktopNav: {
       display: "flex",
       gap: "10px",
-      marginBottom: "22px",
+      margin: "18px 0 22px 0",
       flexWrap: "wrap",
       padding: "8px",
       borderRadius: "18px",
@@ -1008,6 +1047,53 @@ export default function Home() {
       cursor: "pointer",
       boxShadow:
         activeTab === tab ? "0 12px 28px rgba(220,38,38,0.20)" : "none",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "8px",
+    }),
+    bottomNav: {
+      position: "fixed",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 30,
+      padding: "10px 14px 14px 14px",
+      background:
+        "linear-gradient(180deg, rgba(5,5,5,0.05) 0%, rgba(5,5,5,0.85) 20%, rgba(5,5,5,0.98) 100%)",
+      backdropFilter: "blur(16px)",
+    },
+    bottomNavInner: {
+      maxWidth: "760px",
+      margin: "0 auto",
+      display: "grid",
+      gridTemplateColumns: "repeat(6, 1fr)",
+      gap: "8px",
+      background: "rgba(17,17,17,0.92)",
+      border: "1px solid rgba(255,255,255,0.07)",
+      borderRadius: "22px",
+      padding: "8px",
+      boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
+    },
+    bottomTab: (tab) => ({
+      border: "none",
+      cursor: "pointer",
+      borderRadius: "16px",
+      padding: "10px 8px",
+      background:
+        activeTab === tab
+          ? "linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)"
+          : "transparent",
+      color: "#fff",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "4px",
+      fontSize: "11px",
+      fontWeight: 800,
+      lineHeight: 1.1,
+      minHeight: "62px",
+      boxShadow:
+        activeTab === tab ? "0 12px 28px rgba(220,38,38,0.22)" : "none",
     }),
     card: {
       background: "rgba(17,17,17,0.94)",
@@ -1024,12 +1110,6 @@ export default function Home() {
       fontSize: "22px",
       fontWeight: 800,
       letterSpacing: "-0.02em",
-    },
-    sectionSub: {
-      marginTop: "-6px",
-      marginBottom: "16px",
-      color: colors.muted,
-      fontSize: "14px",
     },
     statsGrid: {
       display: "grid",
@@ -1048,7 +1128,7 @@ export default function Home() {
       color: colors.muted,
       fontSize: "13px",
       marginBottom: "8px",
-      fontWeight: 600,
+      fontWeight: 700,
     },
     statValue: {
       fontSize: "28px",
@@ -1062,7 +1142,7 @@ export default function Home() {
     },
     grid2: {
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
       gap: "18px",
     },
     input: {
@@ -1158,7 +1238,34 @@ export default function Home() {
       fontSize: "14px",
       padding: "8px 0",
     },
+    workoutHeaderStats: {
+      display: "flex",
+      gap: "10px",
+      flexWrap: "wrap",
+      marginBottom: "16px",
+    },
+    miniBadge: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "6px",
+      padding: "8px 12px",
+      borderRadius: "999px",
+      border: "1px solid rgba(255,255,255,0.07)",
+      background: "rgba(255,255,255,0.03)",
+      color: "#ddd",
+      fontSize: "12px",
+      fontWeight: 700,
+    },
   };
+
+  const navItems = [
+    { key: "dashboard", label: "Home", icon: "🏠" },
+    { key: "weight", label: "Weight", icon: "⚖️" },
+    { key: "workouts", label: "Workouts", icon: "🏋️" },
+    { key: "measurements", label: "Body", icon: "📏" },
+    { key: "progress", label: "Progress", icon: "📈" },
+    { key: "diet", label: "Diet", icon: "🍽️" },
+  ];
 
   if (loading || !hydrated) {
     return (
@@ -1182,7 +1289,8 @@ export default function Home() {
 
             <h1 style={styles.authTitle}>FitVault</h1>
             <p style={styles.authSubtitle}>
-              Store your workouts, PRs, bodyweight, and progress in one place.
+              Store workouts, completed sessions, PRs, bodyweight, measurements,
+              and progress in one place.
             </p>
 
             <div style={styles.authTabs}>
@@ -1243,80 +1351,37 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
-      <div style={styles.shell}>
-        <div style={styles.headerCard}>
-          <div style={styles.headerTop}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "14px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "rgba(220,38,38,0.14)",
-                  border: "1px solid rgba(220,38,38,0.25)",
-                  fontSize: "24px",
-                }}
-              >
-                🏋️
-              </div>
-
-              <div>
-                <h1 style={styles.title}>FitVault</h1>
-                <p style={styles.subtitle}>
-                  Welcome back, {session.user.email}
-                </p>
-              </div>
-            </div>
-
-            <div style={styles.row}>
-              <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
-              <button onClick={signOut} style={styles.secondaryButton}>
-                Log Out
-              </button>
+      <div style={styles.topBar}>
+        <div style={styles.topBarInner}>
+          <div style={styles.brandRow}>
+            <div style={styles.brandIcon}>🏋️</div>
+            <div>
+              <h1 style={styles.title}>FitVault</h1>
+              <p style={styles.subtitle}>Welcome back, {session.user.email}</p>
             </div>
           </div>
-        </div>
 
-        <div style={styles.nav}>
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            style={styles.tabButton("dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab("weight")}
-            style={styles.tabButton("weight")}
-          >
-            Weight
-          </button>
-          <button
-            onClick={() => setActiveTab("workouts")}
-            style={styles.tabButton("workouts")}
-          >
-            Workouts
-          </button>
-          <button
-            onClick={() => setActiveTab("measurements")}
-            style={styles.tabButton("measurements")}
-          >
-            Measurements
-          </button>
-          <button
-            onClick={() => setActiveTab("progress")}
-            style={styles.tabButton("progress")}
-          >
-            Progress
-          </button>
-          <button
-            onClick={() => setActiveTab("diet")}
-            style={styles.tabButton("diet")}
-          >
-            Diet
-          </button>
+          <div style={styles.headerControls}>
+            <div style={styles.badge}>Goal: 185–190 bulk → 180 lean</div>
+            <button onClick={signOut} style={styles.secondaryButton}>
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.shell}>
+        <div style={styles.desktopNav}>
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveTab(item.key)}
+              style={styles.tabButton(item.key)}
+            >
+              <AppIcon size={16}>{item.icon}</AppIcon>
+              {item.label}
+            </button>
+          ))}
         </div>
 
         {activeTab === "dashboard" && (
@@ -1332,12 +1397,12 @@ export default function Home() {
                 <div style={styles.statCard}>
                   <div style={styles.statLabel}>7-Day Average</div>
                   <div style={styles.statValue}>{weeklyAverage}</div>
-                  <div style={styles.statSub}>Best way to judge your bulk</div>
+                  <div style={styles.statSub}>Better than daily fluctuations</div>
                 </div>
                 <div style={styles.statCard}>
-                  <div style={styles.statLabel}>Workouts Logged</div>
+                  <div style={styles.statLabel}>Completed Workouts</div>
                   <div style={styles.statValue}>{totalWorkouts}</div>
-                  <div style={styles.statSub}>Saved training sessions</div>
+                  <div style={styles.statSub}>Saved permanently to Supabase</div>
                 </div>
                 <div style={styles.statCard}>
                   <div style={styles.statLabel}>Weigh-Ins Logged</div>
@@ -1495,49 +1560,34 @@ export default function Home() {
             <div style={styles.card}>
               <h2 style={styles.sectionTitle}>Live Workout</h2>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                  marginBottom: "18px",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "32px",
-                    fontWeight: 800,
-                    letterSpacing: "-0.02em",
-                  }}
-                >
+              <div style={styles.workoutHeaderStats}>
+                <div style={styles.miniBadge}>
+                  <AppIcon size={14}>⏱️</AppIcon>
                   {formatTime(secondsElapsed)}
                 </div>
-
-                <div style={styles.row}>
-                  <button
-                    onClick={startWorkoutTimer}
-                    style={styles.secondaryButton}
-                  >
-                    Start
-                  </button>
-                  <button
-                    onClick={pauseWorkoutTimer}
-                    style={styles.secondaryButton}
-                  >
-                    Pause
-                  </button>
-                  <button
-                    onClick={resetWorkoutTimer}
-                    style={styles.secondaryButton}
-                  >
-                    Reset
-                  </button>
+                <div style={styles.miniBadge}>
+                  <AppIcon size={14}>💾</AppIcon>
+                  Draft auto-saves if you leave the app
+                </div>
+                <div style={styles.miniBadge}>
+                  <AppIcon size={14}>☁️</AppIcon>
+                  Completed workouts save permanently
                 </div>
               </div>
 
-              <label style={styles.label}>Saved Workout Names</label>
+              <div style={{ ...styles.row, marginBottom: "18px" }}>
+                <button onClick={startWorkoutTimer} style={styles.secondaryButton}>
+                  Start
+                </button>
+                <button onClick={pauseWorkoutTimer} style={styles.secondaryButton}>
+                  Pause
+                </button>
+                <button onClick={resetWorkoutTimer} style={styles.secondaryButton}>
+                  Reset
+                </button>
+              </div>
+
+              <label style={styles.label}>Load Saved Workout Template</label>
               <select
                 value={liveWorkout.name}
                 onChange={(e) => loadSavedWorkoutTemplate(e.target.value)}
@@ -1728,22 +1778,27 @@ export default function Home() {
                 </button>
 
                 <button onClick={addWorkout} style={styles.primaryButton}>
-                  Finish Workout
+                  Save Completed Workout
                 </button>
               </div>
             </div>
 
             <div style={styles.card}>
-              <h2 style={styles.sectionTitle}>Workout History</h2>
+              <h2 style={styles.sectionTitle}>Completed Workouts</h2>
               {workoutLog.length === 0 ? (
-                <div style={styles.empty}>No workouts saved yet.</div>
+                <div style={styles.empty}>No completed workouts saved yet.</div>
               ) : (
                 workoutLog.map((workout) => (
                   <div key={workout.id} style={styles.listCard}>
                     <div style={styles.listHeader}>
                       <div>
                         <h3 style={styles.listTitle}>{workout.name}</h3>
-                        <p style={styles.listMeta}>{workout.date || "No date"}</p>
+                        <p style={styles.listMeta}>
+                          {workout.date || "No date"}
+                          {workout.duration_seconds
+                            ? ` • ${formatTime(workout.duration_seconds)}`
+                            : ""}
+                        </p>
                       </div>
                       <button
                         onClick={() => deleteWorkout(workout.id)}
@@ -2144,6 +2199,21 @@ export default function Home() {
             </div>
           </>
         )}
+      </div>
+
+      <div style={styles.bottomNav}>
+        <div style={styles.bottomNavInner}>
+          {navItems.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setActiveTab(item.key)}
+              style={styles.bottomTab(item.key)}
+            >
+              <AppIcon size={18}>{item.icon}</AppIcon>
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
